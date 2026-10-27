@@ -243,7 +243,7 @@ function HomeTab({ me, lang, L, reload, go }: Props & { me: Me; reload: () => Pr
       <div className="tiles">
         <button type="button" className="tile" onClick={() => go("pay")}>
           <span className="ic" style={{ background: "var(--brand-soft)", color: "var(--brand)" }}><IndianRupee aria-hidden="true" /></span>
-          <span><strong>{me.hours14d.regular + me.hours14d.overtime} {L("hours")}</strong><br /><span className="small muted">{L("hours14")} · {me.hours14d.overtime} {L("overtime").toLowerCase()}</span></span>
+          <span><strong>{Math.round(me.hours14d.regular + me.hours14d.overtime)} {L("hours")}</strong><br /><span className="small muted">{L("hours14")} · {Math.round(me.hours14d.overtime)} {L("overtime").toLowerCase()}</span></span>
         </button>
         <button type="button" className="tile" onClick={() => go("danger")}>
           <span className="ic" style={{ background: "var(--red-soft)", color: "var(--red)" }}><AlertTriangle aria-hidden="true" /></span>
