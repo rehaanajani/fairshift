@@ -7,7 +7,7 @@ import { AlertTriangle, BadgeCheck, Camera, Home, IndianRupee, LogOut, MapPin, M
 import QRCode from "qrcode";
 import { api, fileToBase64, live } from "./api";
 import { LANG_LABEL, LANGS, RTL, t, type Key, type Lang } from "./i18n";
-import { Avatar, day, rupees, useLoad, when } from "./ui";
+import { Avatar, SkipLink, day, rupees, useLoad, when } from "./ui";
 import { canRecord, record, speak, stopSpeaking } from "./voice";
 
 interface ReceiptView { code: string; kind: string; start: string; end: string; hours: number; overtime: number; reason?: string; by: string }
@@ -30,6 +30,8 @@ type Tab = "home" | "pay" | "danger" | "voice" | "passport";
 export function Worker({ onLogout }: { onLogout: () => void }) {
   const { data: me, reload, error } = useLoad(() => api<Me>("/w/me"));
   const [tab, setTab] = useState<Tab>("home");
+  // what the worker said to the assistant, carried into the report form so they never repeat it
+  const [draft, setDraft] = useState("");
   const [lang, setLang] = useState<Lang>("en");
   useEffect(() => {
     if (me) setLang(me.worker.lang);
@@ -58,7 +60,7 @@ export function Worker({ onLogout }: { onLogout: () => void }) {
 
   return (
     <div className="phone">
-      <a className="skip" href="#content">Skip to content</a>
+      <SkipLink to="content">Skip to content</SkipLink>
       <header className="phone-top">
         <Avatar name={me.worker.name} size={42} />
         <div className="grow">
@@ -70,10 +72,10 @@ export function Worker({ onLogout }: { onLogout: () => void }) {
           {LANGS.map((l) => <option key={l} value={l}>{LANG_LABEL[l]}</option>)}
         </select>
       </header>
-      <main className="phone-body" id="content">
-        {tab === "home" && <HomeTab me={me} lang={lang} L={L} reload={reload} go={setTab} />}
+      <main className="phone-body" id="content" tabIndex={-1}>
+        {tab === "home" && <HomeTab me={me} lang={lang} L={L} reload={reload} go={setTab} onDraft={setDraft} />}
         {tab === "pay" && <PayTab lang={lang} L={L} />}
-        {tab === "danger" && <DangerTab me={me} lang={lang} L={L} reload={reload} />}
+        {tab === "danger" && <DangerTab me={me} lang={lang} L={L} reload={reload} draft={draft} clearDraft={() => setDraft("")} />}
         {tab === "voice" && <FeedbackTab lang={lang} L={L} />}
         {tab === "passport" && <PassportTab me={me} L={L} onLogout={onLogout} />}
       </main>
@@ -169,7 +171,7 @@ function TalkButton({ lang, L, onAction }: Props & { onAction: (action: string, 
   );
 }
 
-function HomeTab({ me, lang, L, reload, go }: Props & { me: Me; reload: () => Promise<void>; go: (t: Tab) => void }) {
+function HomeTab({ me, lang, L, reload, go, onDraft }: Props & { me: Me; reload: () => Promise<void>; go: (t: Tab) => void; onDraft: (t: string) => void }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [code, setCode] = useState("");
@@ -238,7 +240,7 @@ function HomeTab({ me, lang, L, reload, go }: Props & { me: Me; reload: () => Pr
       {scan && <QrScanner onCode={(c) => (setScan(false), void checkIn({ code: c }))} onClose={() => setScan(false)} />}
       {receipt && <ReceiptCard r={receipt} L={L} highlight />}
 
-      <TalkButton lang={lang} L={L} onAction={(a) => go(a === "report_hazard" ? "danger" : "voice")} />
+      <TalkButton lang={lang} L={L} onAction={(a, said) => (onDraft(said), go(a === "report_hazard" ? "danger" : "voice"))} />
 
       <div className="tiles">
         <button type="button" className="tile" onClick={() => go("pay")}>
@@ -327,7 +329,7 @@ function PayTab({ lang, L }: Props) {
   const colors: Record<string, string> = { regular: "#161714", overtime: "#9b87ef", pf: "#d9cfb4", esi: "#b9b6c9" };
   const explainPay = async () => {
     setBusy(true);
-    const r = await api<{ text: string }>("/w/payslip/explain", { body: { lang } }).catch((e) => ({ text: (e as Error).message }));
+    const r = await api<{ text: string }>("/w/payslip/explain", { body: { lang, period } }).catch((e) => ({ text: (e as Error).message }));
     setExplain(r.text);
     setBusy(false);
     void speak(r.text, lang, "worker");
@@ -338,7 +340,7 @@ function PayTab({ lang, L }: Props) {
     <>
       <div className="row" role="group" aria-label="Period">
         {(["month", "week"] as const).map((p) => (
-          <button key={p} type="button" className={`btn sm ${period === p ? "primary" : ""}`} aria-pressed={period === p} onClick={() => setPeriod(p)}>{L(p === "month" ? "last30" : "thisWeek")}</button>
+          <button key={p} type="button" className={`btn sm ${period === p ? "primary" : ""}`} aria-pressed={period === p} onClick={() => (setPeriod(p), setExplain(""))}>{L(p === "month" ? "last30" : "thisWeek")}</button>
         ))}
       </div>
       <section className="card pad col">
@@ -369,8 +371,10 @@ function PayTab({ lang, L }: Props) {
   );
 }
 
-function DangerTab({ me, lang, L, reload }: Props & { me: Me; reload: () => Promise<void> }) {
-  const [text, setText] = useState("");
+function DangerTab({ me, lang, L, reload, draft, clearDraft }: Props & { me: Me; reload: () => Promise<void>; draft: string; clearDraft: () => void }) {
+  const [text, setText] = useState(draft);
+  const [track, setTrack] = useState("");
+  const [tracked, setTracked] = useState<{ status: string; category: string; updates: { at: string; note: string }[] } | string | null>(null);
   const [photo, setPhoto] = useState<{ data: string; type: string; url: string } | null>(null);
   const [anonymous, setAnonymous] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -390,6 +394,7 @@ function DangerTab({ me, lang, L, reload }: Props & { me: Me; reload: () => Prom
       setDone(r);
       void speak(r.advice, lang, "worker", r.speech);
       setText("");
+      clearDraft();
       setPhoto(null);
       setVoice(null);
       await reload();
@@ -419,7 +424,11 @@ function DangerTab({ me, lang, L, reload }: Props & { me: Me; reload: () => Prom
               if (rec) {
                 setVoice(await rec());
                 setRec(null);
-              } else setRec(() => null), setRec(await record().catch(() => null));
+              } else {
+                // store the stop function itself (a function passed straight to a setter would be called)
+                const stop = await record().catch(() => null);
+                setRec(() => stop);
+              }
             }}
           >
             <Mic aria-hidden="true" /> {rec ? L("stop") : voice ? "✓" : L("speak")}
@@ -458,6 +467,25 @@ function DangerTab({ me, lang, L, reload }: Props & { me: Me; reload: () => Prom
           ))}
         </section>
       )}
+      <form
+        className="card pad col"
+        aria-label={L("trackCode")}
+        onSubmit={async (e) => {
+          e.preventDefault();
+          const r = await api<{ status: string; category: string; updates: { at: string; note: string }[] }>(`/w/hazards/track/${encodeURIComponent(track.trim())}`).catch((err) => (err as Error).message);
+          setTracked(r);
+        }}
+      >
+        <label className="field">{L("trackCode")}<input className="input mono" value={track} onChange={(e) => setTrack(e.target.value.toUpperCase())} placeholder="SV-XXXXXX" autoCapitalize="characters" /></label>
+        <button type="submit" className="btn" disabled={track.trim().length < 6}>OK</button>
+        {typeof tracked === "string" && <p className="error" role="alert" style={{ margin: 0 }}>{tracked}</p>}
+        {tracked && typeof tracked !== "string" && (
+          <div className="col" style={{ gap: 6 }} aria-live="polite">
+            <div className="row"><strong className="grow">{tracked.category}</strong>{statusChip(tracked.status)}</div>
+            {tracked.updates.map((u) => <span key={u.at} className="small muted">{when(u.at)} · {u.note}</span>)}
+          </div>
+        )}
+      </form>
     </>
   );
 }

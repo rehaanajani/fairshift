@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertTriangle, BadgeCheck, CalendarClock, Camera, ClipboardList, Download, FileSpreadsheet, LayoutDashboard, LogOut, QrCode, Receipt, RefreshCw, ShieldAlert, MessagesSquare, Users } from "lucide-react";
 import { api, ApiError, download, fileToBase64, live } from "./api";
-import { Avatar, Modal, SECTOR_LABEL, day, rupees, useLoad, when } from "./ui";
+import { Avatar, Modal, SECTOR_LABEL, SkipLink, day, rupees, useLoad, when } from "./ui";
 
 interface Person {
   id: string; name: string; job: string; lang: string; hourlyRate: number; onShift: boolean; onShiftHours: number; daysWorked: number;
@@ -64,7 +64,7 @@ export function Admin({ orgs, onSwitch, onLogout }: { orgs: { id: string; name: 
 
   return (
     <div className="admin">
-      <a className="skip" href="#main">Skip to dashboard</a>
+      <SkipLink to="main">Skip to dashboard</SkipLink>
       <aside className="side" aria-label="Employer">
         <a href="#/" className="logo"><img src="/logo.svg" alt="" width={36} height={36} />FairShift</a>
         <label className="col" style={{ gap: 6 }}>
@@ -85,7 +85,7 @@ export function Admin({ orgs, onSwitch, onLogout }: { orgs: { id: string; name: 
         <button type="button" className="btn sm" onClick={onLogout}><LogOut size={16} aria-hidden="true" /> Sign out</button>
       </aside>
 
-      <main className="main" id="main">
+      <main className="main" id="main" tabIndex={-1}>
         <header id="overview">
           <div className="grow">
             <h1>{o.org.name}</h1>
@@ -226,9 +226,9 @@ function HazardRow({ h, onDone, fresh }: { h: Hazard; onDone: () => Promise<void
     setBusy(false);
   };
   return (
-    <article className={`hazard sev${h.severity} ${fresh ? "new" : ""}`}>
+    <article className={`hazard ${h.status === "fixed" ? "sev1" : `sev${h.severity}`} ${fresh ? "new" : ""}`}>
       <div className="row wrap" style={{ gap: 8 }}>
-        <span className={`chip ${h.severity === 3 ? "red" : h.severity === 2 ? "gold" : ""}`}>{h.severity === 3 ? "Fix today" : h.severity === 2 ? "This week" : "Low"}</span>
+        <span className={`chip ${h.status === "fixed" ? "" : h.severity === 3 ? "red" : h.severity === 2 ? "gold" : ""}`}>{h.status === "fixed" ? "Resolved" : h.severity === 3 ? "Fix today" : h.severity === 2 ? "This week" : "Low"}</span>
         <strong className="grow">{h.category}</strong>
         <span className={`chip ${h.status === "fixed" ? "green" : h.status === "acknowledged" ? "blue" : "red"}`}>{h.status}</span>
       </div>

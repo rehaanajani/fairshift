@@ -21,12 +21,31 @@ export function Avatar({ name, size = 40 }: { name: string; size?: number }) {
   );
 }
 
+/** Skip link that focuses the main region without touching the hash route. */
+export function SkipLink({ to, children }: { to: string; children: ReactNode }) {
+  return (
+    <a className="skip" href={`#${to}`} onClick={(e) => (e.preventDefault(), document.getElementById(to)?.focus())}>
+      {children}
+    </a>
+  );
+}
+
 export function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null;
     ref.current?.querySelector<HTMLElement>("button, input, select, textarea")?.focus();
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") return onClose();
+      // keep keyboard focus inside the dialog
+      if (e.key !== "Tab" || !ref.current) return;
+      const items = [...ref.current.querySelectorAll<HTMLElement>("button, a[href], input, select, textarea, [tabindex]:not([tabindex='-1'])")].filter((el) => !el.hasAttribute("disabled"));
+      if (!items.length) return;
+      const first = items[0]!, last = items[items.length - 1]!;
+      if (e.shiftKey && document.activeElement === first) (e.preventDefault(), last.focus());
+      else if (!e.shiftKey && document.activeElement === last) (e.preventDefault(), first.focus());
+      else if (!ref.current.contains(document.activeElement)) (e.preventDefault(), first.focus());
+    };
     window.addEventListener("keydown", esc);
     return () => {
       window.removeEventListener("keydown", esc);

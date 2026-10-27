@@ -51,7 +51,11 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
 /** Downloads a file the API protects with a token (registers). */
 export async function download(path: string, filename: string, role: Role = "admin") {
   const res = await fetch(`/api${path}`, { headers: { "x-session": session.get(role) ?? "" } });
-  if (!res.ok) throw new ApiError("Download failed.", res.status);
+  if (res.status === 401) {
+    session.set(role, null);
+    location.reload();
+  }
+  if (!res.ok) throw new ApiError(res.status === 401 ? "Your session expired. Sign in again to download." : "Download failed. Check your connection and try again.", res.status);
   const url = URL.createObjectURL(await res.blob());
   const a = Object.assign(document.createElement("a"), { href: url, download: filename });
   a.click();
