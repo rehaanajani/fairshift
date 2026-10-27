@@ -34,7 +34,7 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
   const token = session.get(init.role ?? roleFor(path));
   const res = await fetch(`/api${path}`, {
     method: init.method ?? (init.body ? "POST" : "GET"),
-    headers: { ...(init.body ? { "content-type": "application/json" } : {}), ...(token ? { authorization: `Bearer ${token}` } : {}) },
+    headers: { ...(init.body ? { "content-type": "application/json" } : {}), ...(token ? { "x-session": token } : {}) },
     body: init.body ? JSON.stringify(init.body) : undefined,
   });
   const data = res.headers.get("content-type")?.includes("json") ? await res.json() : await res.text();
@@ -44,7 +44,7 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
 
 /** Downloads a file the API protects with a token (registers). */
 export async function download(path: string, filename: string, role: Role = "admin") {
-  const res = await fetch(`/api${path}`, { headers: { authorization: `Bearer ${session.get(role)}` } });
+  const res = await fetch(`/api${path}`, { headers: { "x-session": session.get(role) ?? "" } });
   if (!res.ok) throw new ApiError("Download failed.", res.status);
   const url = URL.createObjectURL(await res.blob());
   const a = Object.assign(document.createElement("a"), { href: url, download: filename });
@@ -60,7 +60,7 @@ export function live<T>(path: string, role: Role, onEvent: (e: T) => void): () =
     while (!stopped) {
       try {
         ctrl = new AbortController();
-        const res = await fetch(`/api${path}`, { headers: { authorization: `Bearer ${session.get(role)}` }, signal: ctrl.signal });
+        const res = await fetch(`/api${path}`, { headers: { "x-session": session.get(role) ?? "" }, signal: ctrl.signal });
         if (!res.ok || !res.body) throw new Error(String(res.status));
         const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
         let buf = "";

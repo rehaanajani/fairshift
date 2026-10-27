@@ -192,3 +192,7 @@ label.field { display: grid; gap: 6px; font-weight: 600; font-size: 14px; }
 .demo-screen iframe { border-radius: 0; }
 .demo-label { color: #9fb8ab; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; text-align: center; margin-bottom: 8px; }
 @media (max-width: 1000px) { .demo { grid-template-columns: 1fr; height: auto; } .demo-screen { height: 900px; } }
+/* keep long words in Indian scripts inside narrow phones */
+.phone-body > *, .row > *, .shift-card * { min-width: 0; }
+.shift-card .chip { white-space: normal; text-align: center; }
+.phone-top h1 { overflow-wrap: anywhere; }

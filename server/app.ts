@@ -5,7 +5,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import QRCode from "qrcode";
 import { assistant, explainPayslip, feedbackThemes, readRegister, triageHazard } from "./ai.ts";
-import { issue, passportId, requireRole, samePin, verify } from "./auth.ts";
+import { issue, passportId, requireRole, samePin, tokenOf, verify } from "./auth.ts";
 import { firstBroken, receiptCode, seal, type Receipt } from "./ledger.ts";
 import { ANONYMITY_MIN, distanceM, fatigueFlags, payslip, quitRisk, restProblems, shiftHours, splitHours } from "./rules.ts";
 import { DEMO, MIN_HOURLY_WAGE, seed, type Data } from "./seed.ts";
@@ -153,7 +153,7 @@ export function createApp(input: Store | Data = seed(), opts: { now?: () => Date
   });
 
   app.post("/api/speech", limit(40), async (req, res) => {
-    if (!verify(req.get("authorization")?.replace(/^Bearer /, ""))) return void res.status(401).json({ error: "Please log in again." });
+    if (!verify(tokenOf(req))) return void res.status(401).json({ error: "Please log in again." });
     const t = text(req.body?.text, 1400);
     const l = lang(req.body?.lang);
     if (!t || !l) return void res.status(400).json({ error: "Text and language are needed." });

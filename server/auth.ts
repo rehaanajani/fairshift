@@ -44,9 +44,15 @@ declare module "express-serve-static-core" {
   }
 }
 
+/**
+ * The login token travels in X-Session: Cloud Run treats an Authorization header as a Google identity
+ * token and rejects ours before it reaches the app. Authorization is still accepted for local tools.
+ */
+export const tokenOf = (req: Request) => req.get("x-session") ?? req.get("authorization")?.replace(/^Bearer /, "");
+
 export function requireRole(role: Session["role"]) {
   return (req: Request, res: Response, next: NextFunction) => {
-    const s = verify(req.get("authorization")?.replace(/^Bearer /, ""));
+    const s = verify(tokenOf(req));
     if (!s || s.role !== role) return void res.status(401).json({ error: "Please log in again." });
     req.session = s;
     next();
