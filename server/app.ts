@@ -7,7 +7,7 @@ import QRCode from "qrcode";
 import { assistant, explainPayslip, feedbackThemes, readRegister, triageHazard } from "./ai.ts";
 import { issue, passportId, requireRole, samePin, tokenOf, verify } from "./auth.ts";
 import { firstBroken, receiptCode, seal, type Receipt } from "./ledger.ts";
-import { ANONYMITY_MIN, distanceM, fatigueFlags, payslip, quitRisk, restProblems, shiftHours, splitHours } from "./rules.ts";
+import { ANONYMITY_MIN, SITE_UTC_OFFSET_MS, distanceM, fatigueFlags, localDay, payslip, quitRisk, restProblems, shiftHours, splitHours } from "./rules.ts";
 import { DEMO, MIN_HOURLY_WAGE, seed, type Data } from "./seed.ts";
 import { speechStatus, synthesize, transcribe } from "./speech.ts";
 import { Store, type Change } from "./store.ts";
@@ -129,7 +129,8 @@ export function createApp(input: Store | Data = seed(), opts: { now?: () => Date
     if (i < 0) return void res.status(404).json({ valid: false, error: "No receipt with this code." });
     const r = data.receipts[i]!;
     const broken = firstBroken(data.receipts);
-    const corrected = data.receipts.some((x) => x.kind === "correction" && x.shiftId === r.shiftId && x.at > r.at);
+    // a correction is any later link in the chain for the same shift (chain order, not clock time)
+    const corrected = data.receipts.some((x, j) => j > i && x.kind === "correction" && x.shiftId === r.shiftId);
     res.json({ valid: broken === -1 || broken > i, corrected, receipt: { ...receiptView(r), employer: org(r.orgId).name, worker: worker(r.workerId).name.split(" ")[0] } });
   });
 
@@ -192,7 +193,7 @@ export function createApp(input: Store | Data = seed(), opts: { now?: () => Date
       site: { name: siteOf(m.orgId).name },
       onShift: mine.find((s) => !s.end) ?? null,
       hours14d: splitHours(recent.filter((s) => s.end), o.policy, now()),
-      daysWorked14d: new Set(recent.map((s) => s.start.slice(0, 10))).size,
+      daysWorked14d: new Set(recent.map((s) => localDay(s.start))).size,
       fatigue: fatigueFlags(recent, o.policy, now()).slice(-5),
       planned: data.planned.filter((p) => p.workerId === m.id && p.end > now().toISOString()),
       receipts: data.receipts.filter((r) => r.workerId === m.id).slice(-12).reverse().map(receiptView),
@@ -227,6 +228,7 @@ export function createApp(input: Store | Data = seed(), opts: { now?: () => Date
       if (code.toUpperCase() !== site.checkInCode) return void res.status(400).json({ error: "This QR code is not for your site." });
       method = "qr";
     } else if (lat !== undefined && lng !== undefined) {
+      if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return void res.status(400).json({ error: "That location isn't valid. Turn on GPS and try again." });
       const d = distanceM({ lat, lng }, site);
       if (d > site.radiusM) return void res.status(400).json({ error: `You are ${Math.round(d)} m from ${site.name}. Check in at the site.` });
       method = "gps";
@@ -249,14 +251,14 @@ export function createApp(input: Store | Data = seed(), opts: { now?: () => Date
 
   const slipFor = (req: Request) => {
     const m = me(req);
-    const days = req.query.period === "week" ? 7 : 30;
+    const days = (req.body?.period ?? req.query.period) === "week" ? 7 : 30;
     return payslip(m, data.shifts, org(m.orgId).policy, since(days), now().toISOString(), now());
   };
   w.get("/payslip", (req, res) => void res.json(slipFor(req)));
 
   w.post("/payslip/explain", limit(20), async (req, res) => {
     const slip = slipFor(req);
-    res.json(await explainPayslip(slip.lines, slip.net, lang(req.body?.lang) ?? me(req).lang, text(req.body?.question, 300)));
+    res.json({ ...(await explainPayslip(slip.lines, slip.net, lang(req.body?.lang) ?? me(req).lang, text(req.body?.question, 300))), from: slip.from, to: slip.to, net: slip.net });
   });
 
   /** The one-button assistant: voice (or typed text) in any of 16 languages → grounded spoken answer + next action. */
@@ -347,7 +349,7 @@ export function createApp(input: Store | Data = seed(), opts: { now?: () => Date
     const recent = shiftsOf(x.id).filter((s) => s.start >= since(14));
     const hours = splitHours(recent.filter((s) => s.end), o.policy, now());
     const flags = fatigueFlags(recent, o.policy, now());
-    const worked = new Set(recent.map((s) => s.start.slice(0, 10))).size;
+    const worked = new Set(recent.map((s) => localDay(s.start))).size;
     const tenure = Math.floor((now().getTime() - new Date(x.joinedOn).getTime()) / DAY);
     const risk = quitRisk({
       overtimeHours14d: hours.overtime,
@@ -371,8 +373,8 @@ export function createApp(input: Store | Data = seed(), opts: { now?: () => Date
     const site = siteOf(o.id);
     const staff = staffOf(o.id);
     const ids = new Set(staff.map((x) => x.id));
-    const days = Array.from({ length: 14 }, (_, i) => new Date(now().getTime() - (13 - i) * DAY).toISOString().slice(0, 10));
-    const attendance = days.map((d) => ({ day: d, present: new Set(data.shifts.filter((s) => s.start.slice(0, 10) === d && ids.has(s.workerId)).map((s) => s.workerId)).size }));
+    const days = Array.from({ length: 14 }, (_, i) => localDay(now().getTime() - (13 - i) * DAY));
+    const attendance = days.map((d) => ({ day: d, present: new Set(data.shifts.filter((s) => localDay(s.start) === d && ids.has(s.workerId)).map((s) => s.workerId)).size }));
     const people = staff.map(personView).sort((p, q) => q.risk.score - p.risk.score);
     const fb = data.feedback.filter((f) => f.orgId === o.id);
     const receipts = data.receipts.filter((r) => r.orgId === o.id);
@@ -419,8 +421,10 @@ export function createApp(input: Store | Data = seed(), opts: { now?: () => Date
   });
 
   a.get("/feedback/themes", limit(10), async (req, res) => {
-    const fb = data.feedback.filter((f) => f.orgId === req.session!.orgId);
-    if (fb.length < ANONYMITY_MIN) return void res.json({ themes: [], action: "Not enough feedback yet to show without identifying anyone.", source: "rules" });
+    // only topics with enough responses are released, to the model and to the screen alike
+    const all = data.feedback.filter((f) => f.orgId === req.session!.orgId);
+    const fb = all.filter((f) => all.filter((g) => g.topic === f.topic).length >= ANONYMITY_MIN);
+    if (!fb.length) return void res.json({ themes: [], action: "Not enough feedback on any topic yet to show without identifying anyone.", source: "rules" });
     res.json(await feedbackThemes(fb));
   });
 
@@ -502,9 +506,12 @@ export function createApp(input: Store | Data = seed(), opts: { now?: () => Date
     const start = text(req.body?.start, 40);
     const end = text(req.body?.end, 40);
     if (!s || !s.end) return void res.status(404).json({ error: "Completed shift not found." });
-    if (!reason || !start || !end || Number.isNaN(Date.parse(start)) || Date.parse(end) <= Date.parse(start)) return void res.status(400).json({ error: "Give the corrected times and a reason." });
-    s.start = new Date(start).toISOString();
-    s.end = new Date(end).toISOString();
+    // validate everything before touching the shift, so a rejected correction changes nothing
+    const ns = start ? Date.parse(start) : NaN;
+    const ne = end ? Date.parse(end) : NaN;
+    if (!reason || !Number.isFinite(ns) || !Number.isFinite(ne) || ne <= ns || ne - ns > 24 * 3_600_000) return void res.status(400).json({ error: "Give valid corrected times (end after start, under 24 hours) and a reason." });
+    s.start = new Date(ns).toISOString();
+    s.end = new Date(ne).toISOString();
     const r = addReceipt(s, "admin", "correction", reason);
     store.changed({ type: "shift", orgId: req.session!.orgId, workerId: s.workerId, action: "amended" });
     res.json({ receipt: receiptView(r) });
@@ -562,10 +569,11 @@ export function createApp(input: Store | Data = seed(), opts: { now?: () => Date
     const esc = (v: unknown) => `"${String(v).replace(/"/g, '""')}"`;
     const rows: unknown[][] = [];
     if (kind === "attendance") {
-      rows.push(["Worker", "Job", "Date", "In (UTC)", "Out (UTC)", "Hours", "Method", "Receipt"]);
+      rows.push(["Worker", "Job", "Date", "In (IST)", "Out (IST)", "Hours", "Method", "Receipt"]);
+      const ist = (iso: string) => new Date(new Date(iso).getTime() + SITE_UTC_OFFSET_MS).toISOString().slice(11, 16);
       for (const s of data.shifts.filter((x) => x.start >= from && worker(x.workerId).orgId === o.id).sort((p, q) => p.start.localeCompare(q.start))) {
         const r = data.receipts.findLast((x) => x.shiftId === s.id);
-        rows.push([worker(s.workerId).name, worker(s.workerId).job, s.start.slice(0, 10), s.start.slice(11, 16), s.end?.slice(11, 16) ?? "on shift", round2(shiftHours(s, now())), s.method, r ? receiptCode(r.hash) : ""]);
+        rows.push([worker(s.workerId).name, worker(s.workerId).job, localDay(s.start), ist(s.start), s.end ? ist(s.end) : "on shift", round2(shiftHours(s, now())), s.method, r ? receiptCode(r.hash) : ""]);
       }
     } else if (kind === "overtime" || kind === "wages") {
       rows.push(kind === "overtime" ? ["Worker", "Job", "Regular hours", "Overtime hours", "Overtime rate (₹/h)", "Overtime pay (₹)"] : ["Worker", "Job", "Rate (₹/h)", "Regular pay", "Overtime pay", "Gross", "PF", "ESI", "Net"]);

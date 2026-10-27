@@ -140,9 +140,19 @@ describe("restProblems", () => {
       .toEqual(["overlaps another shift"]);
   });
 
-  it("uses the injected clock as the end of an open shift", () => {
-    expect(check([{ start: "2026-10-27T08:00:00.000Z" }], shift("2026-10-27T10:00:00.000Z", 4)))
-      .toEqual(["overlaps another shift"]);
+  it("treats an open shift as unfinished: nothing can be planned after it", () => {
+    expect(check([{ start: "2026-10-27T08:00:00.000Z" }], shift("2026-10-27T10:00:00.000Z", 4))).toContain("still on a shift that hasn't been closed");
+    expect(check([{ start: "2026-10-27T08:00:00.000Z" }], shift("2026-10-28T00:00:00.000Z", 8))).toContain("still on a shift that hasn't been closed");
+  });
+
+  it("counts working days on both sides of a new shift", () => {
+    const later = [1, 2, 3, 4, 5, 6].map((d) => shift(`2026-10-${String(19 + d).padStart(2, "0")}T03:00:00.000Z`, 8));
+    expect(check(later, shift("2026-10-19T03:00:00.000Z", 8))).toContain("day 7 in a row without a day off");
+  });
+
+  it("adds two shifts on one local day together for daily overtime", () => {
+    const h = splitHours([shift("2026-10-20T02:30:00.000Z", 6), shift("2026-10-20T10:00:00.000Z", 6)], DEFAULT_POLICY, fixed);
+    expect(h).toMatchObject({ regular: 9, overtime: 3 });
   });
 
   it.each([

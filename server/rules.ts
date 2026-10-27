@@ -23,9 +23,16 @@ export function shiftHours(s: Shift, now = new Date()): number {
   return Math.max(0, (end.getTime() - new Date(s.start).getTime()) / HOUR);
 }
 
-/** Monday of the week a date falls in, as YYYY-MM-DD (UTC, like every stored timestamp). */
+/**
+ * Timestamps are stored in UTC, but a working day and week follow the site's local clock (India, UTC+5:30),
+ * so a 1 am shift counts on the right local date.
+ */
+export const SITE_UTC_OFFSET_MS = 5.5 * HOUR;
+export const localDay = (iso: string | number) => new Date(new Date(iso).getTime() + SITE_UTC_OFFSET_MS).toISOString().slice(0, 10);
+
+/** Monday of the local week a timestamp falls in, as YYYY-MM-DD. */
 export function weekOf(iso: string): string {
-  const d = new Date(iso);
+  const d = new Date(new Date(iso).getTime() + SITE_UTC_OFFSET_MS);
   const day = (d.getUTCDay() + 6) % 7;
   d.setUTCDate(d.getUTCDate() - day);
   return d.toISOString().slice(0, 10);
@@ -40,17 +47,19 @@ export interface HoursBreakdown {
 }
 
 /**
- * Splits worked hours into regular and overtime. A shift's hours beyond the daily limit are overtime;
- * then, in each week, regular hours beyond the weekly limit become overtime too. Never counted twice.
+ * Splits worked hours into regular and overtime. All hours in a local working day beyond the daily limit
+ * are overtime (two short shifts on one day add up); then, in each week, regular hours beyond the weekly
+ * limit become overtime too. Never counted twice.
  */
 export function splitHours(shifts: Shift[], policy: Policy, now = new Date()): HoursBreakdown {
+  const byDay = new Map<string, number>();
+  for (const s of shifts) byDay.set(localDay(s.start), (byDay.get(localDay(s.start)) ?? 0) + shiftHours(s, now));
   let dailyOvertime = 0;
   const regularByWeek = new Map<string, number>();
-  for (const s of shifts) {
-    const h = shiftHours(s, now);
+  for (const [day, h] of byDay) {
     const ot = Math.max(0, h - policy.dailyHours);
     dailyOvertime += ot;
-    const wk = weekOf(s.start);
+    const wk = weekOf(`${day}T12:00:00+05:30`);
     regularByWeek.set(wk, (regularByWeek.get(wk) ?? 0) + h - ot);
   }
   let regular = 0;
@@ -167,7 +176,7 @@ export function fatigueFlags(shifts: Shift[], policy: Policy, now = new Date()):
       if (rest < policy.minRestHours) flags.push({ kind: "short-rest", at: s.start, detail: `only ${round2(rest)} hours rest between shifts (need ${policy.minRestHours})` });
     }
 
-    const day = s.start.slice(0, 10);
+    const day = localDay(s.start);
     if (day !== lastDay) {
       const gap = lastDay ? (new Date(day).getTime() - new Date(lastDay).getTime()) / (24 * HOUR) : 99;
       streak = gap === 1 ? streak + 1 : 1;
@@ -242,7 +251,9 @@ export function restProblems(existing: { start: string; end?: string }[], start:
   const problems: string[] = [];
   const len = (e - s) / HOUR;
   if (len > policy.maxShiftHours) problems.push(`${round2(len)} hour shift is over the ${policy.maxShiftHours} hour limit`);
-  const spans = existing.map((x) => ({ s: new Date(x.start).getTime(), e: x.end ? new Date(x.end).getTime() : now.getTime() }));
+  // a shift still open has no known end: nothing can be planned after it until it is closed
+  if (existing.some((x) => !x.end && new Date(x.start).getTime() <= e)) problems.push("still on a shift that hasn't been closed");
+  const spans = existing.map((x) => ({ s: new Date(x.start).getTime(), e: x.end ? new Date(x.end).getTime() : Math.max(now.getTime(), e) }));
   for (const x of spans) {
     if (x.s < e && s < x.e) {
       problems.push("overlaps another shift");
@@ -251,12 +262,14 @@ export function restProblems(existing: { start: string; end?: string }[], start:
     const gap = x.e <= s ? (s - x.e) / HOUR : x.s >= e ? (x.s - e) / HOUR : Infinity;
     if (gap < policy.minRestHours) problems.push(`only ${round2(gap)} hours of rest next to another shift (needs ${policy.minRestHours})`);
   }
-  const weekStart = new Date(weekOf(start)).getTime();
+  const weekStart = new Date(weekOf(start)).getTime() - SITE_UTC_OFFSET_MS;
   const weekHours = spans.filter((x) => x.s >= weekStart && x.s < weekStart + 7 * 24 * HOUR).reduce((h, x) => h + (x.e - x.s) / HOUR, 0) + len;
   if (weekHours > policy.weeklyHours + 12) problems.push(`would make ${round2(weekHours)} hours this week`);
-  const days = new Set([...spans.map((x) => new Date(x.s).toISOString().slice(0, 10)), new Date(s).toISOString().slice(0, 10)]);
-  let streak = 0;
-  for (let d = new Date(s); days.has(d.toISOString().slice(0, 10)); d = new Date(d.getTime() - 24 * HOUR)) streak++;
+  // count working days in a row on both sides of the new shift
+  const days = new Set([...spans.map((x) => localDay(x.s)), localDay(s)]);
+  let streak = 1;
+  for (let d = s - 24 * HOUR; days.has(localDay(d)); d -= 24 * HOUR) streak++;
+  for (let d = s + 24 * HOUR; days.has(localDay(d)); d += 24 * HOUR) streak++;
   if (streak > policy.maxConsecutiveDays) problems.push(`day ${streak} in a row without a day off`);
   return [...new Set(problems)];
 }

@@ -207,7 +207,8 @@ describe("roster rest guard", () => {
     const response = await request("/api/admin/roster", { token, method: "POST", body: proposed });
     expect(response.status).toBe(409);
     const result = await response.json();
-    expect(result.problems).toEqual([`only ${rest} hours of rest next to another shift (needs 10)`]);
+    // an open shift has no known end, so it blocks planning outright; a closed one is judged by rest hours
+    expect(result.problems).toEqual(end ? [`only ${rest} hours of rest next to another shift (needs 10)`] : expect.arrayContaining(["still on a shift that hasn't been closed"]));
     expect(result.alternatives).toEqual(expect.arrayContaining([expect.objectContaining({ id: "w4", name: "Raju Naidu" })]));
     const alternatives = result.alternatives as { id: string }[];
     expect(alternatives.length).toBeGreaterThan(0);
@@ -229,7 +230,7 @@ describe("roster rest guard", () => {
     const { planned } = await response.json();
     expect(planned).toMatchObject({ workerId: "w1", start: fixed.toISOString(), end: "2026-10-27T20:00:00.000Z" });
     expect(planned.override).toContain(override);
-    expect(planned.override).toContain(`only ${rest} hours of rest`);
+    expect(planned.override).toContain(end ? `only ${rest} hours of rest` : "still on a shift");
     expect(data.planned).toEqual([planned]);
   });
 
@@ -276,7 +277,7 @@ describe("crew attendance", () => {
 
 describe("inspection register exports", () => {
   it.each([
-    { kind: "attendance", header: '"Worker","Job","Date","In (UTC)","Out (UTC)","Hours","Method","Receipt"' },
+    { kind: "attendance", header: '"Worker","Job","Date","In (IST)","Out (IST)","Hours","Method","Receipt"' },
     { kind: "overtime", header: '"Worker","Job","Regular hours","Overtime hours","Overtime rate (₹/h)","Overtime pay (₹)"' },
     { kind: "wages", header: '"Worker","Job","Rate (₹/h)","Regular pay","Overtime pay","Gross","PF","ESI","Net"' },
   ])("exports $kind as CSV with the expected header and organisation's rows", async ({ kind, header }) => {
