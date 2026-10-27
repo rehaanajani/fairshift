@@ -3,7 +3,9 @@
  * always show the last few weeks. Deterministic (seeded random), so tests and demos match.
  */
 import { DEFAULT_POLICY } from "./rules.ts";
-import type { Feedback, Hazard, Org, Shift, Site, Skill, Worker } from "./types.ts";
+import { seal, type Receipt } from "./ledger.ts";
+import { shiftHours } from "./rules.ts";
+import type { Feedback, Hazard, Org, Planned, Shift, Site, Skill, Worker } from "./types.ts";
 
 export interface Data {
   orgs: Org[];
@@ -13,6 +15,8 @@ export interface Data {
   hazards: Hazard[];
   feedback: Feedback[];
   skills: Skill[];
+  receipts: Receipt[];
+  planned: Planned[];
 }
 
 function rng(seed: number) {
@@ -142,7 +146,15 @@ export function seed(now = new Date()): Data {
     { id: "k7", workerId: "w8", title: "Housekeeping and hygiene", issuer: "Campus Services, SRM", date: "2022-02-01", verified: false },
   ];
 
-  return { orgs, sites, workers, shifts, hazards, feedback, skills };
+  const receipts: Receipt[] = [];
+  for (const s of [...shifts].sort((a, b) => a.end!.localeCompare(b.end!))) {
+    const w = workers.find((x) => x.id === s.workerId)!;
+    const policy = orgs.find((o) => o.id === w.orgId)!.policy;
+    const hours = Math.round(shiftHours(s) * 100) / 100;
+    receipts.push(seal(receipts, { orgId: w.orgId, workerId: w.id, shiftId: s.id, start: s.start, end: s.end!, hours, overtime: Math.max(0, Math.round((hours - policy.dailyHours) * 100) / 100), kind: "shift", by: "worker", at: s.end! }));
+  }
+
+  return { orgs, sites, workers, shifts, hazards, feedback, skills, receipts, planned: [] };
 }
 
 /** Hourly equivalent of the lowest state minimum wage that applies to these jobs (₹600 for an 8-hour day). */
