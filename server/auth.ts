@@ -4,10 +4,12 @@ import type { NextFunction, Request, Response } from "express";
 
 export type Session = { role: "worker"; workerId: string; orgId: string } | { role: "admin"; orgId: string };
 
-const SECRET = process.env.SESSION_SECRET || randomBytes(32).toString("hex");
+let fallback: string | undefined;
+/** SESSION_SECRET, or (on Cloud Run) the random key stored with the app's data on first start. */
+const secret = () => process.env.SESSION_SECRET || (fallback ??= randomBytes(32).toString("hex"));
 const TTL_MS = 12 * 3_600_000;
 
-const sign = (body: string) => createHmac("sha256", SECRET).update(body).digest("base64url");
+const sign = (body: string) => createHmac("sha256", secret()).update(body).digest("base64url");
 
 export function issue(session: Session, now = Date.now()): string {
   const body = Buffer.from(JSON.stringify({ ...session, exp: now + TTL_MS })).toString("base64url");
@@ -52,4 +54,4 @@ export function requireRole(role: Session["role"]) {
 }
 
 /** Public, unguessable id for a worker's skill passport (safe to put in a QR code). */
-export const passportId = (workerId: string) => createHmac("sha256", SECRET).update(`passport:${workerId}`).digest("base64url").slice(0, 16);
+export const passportId = (workerId: string) => createHmac("sha256", secret()).update(`passport:${workerId}`).digest("base64url").slice(0, 16);

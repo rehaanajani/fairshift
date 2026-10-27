@@ -17,6 +17,8 @@ export interface Data {
   skills: Skill[];
   receipts: Receipt[];
   planned: Planned[];
+  /** server-only settings kept with the data, e.g. the key that signs logins */
+  meta?: { sessionSecret?: string };
 }
 
 function rng(seed: number) {
