@@ -10,7 +10,7 @@ Construction sites, hospitals and college campuses still run their workforce on 
 FairShift fixes both sides, for people who may not read well, speak one of many Indian languages, and own a basic smartphone:
 
 - **Workers never have to type.** They hold one button and speak in any of **16 Indian languages**. Gemini understands them, answers from their own records (pay, shifts, rest), and Google Cloud Text-to-Speech reads the answer aloud.
-- **Hours can't quietly disappear.** Every completed shift is sealed into a **hash-chained receipt**. If an employer edits hours later, that becomes a new receipt the worker sees, with the reason. Anyone can check a receipt code.
+- **Hours can't quietly disappear.** Every completed shift is sealed into a **hash-chained receipt**. If an employer edits hours later, that becomes a new receipt the worker sees, with the reason, and any edit inside the chain breaks verification. Workers keep their receipt codes, so a wholesale rewrite would no longer match the codes they hold. Anyone can check a code.
 - **Fatigue is stopped before it starts.** The roster refuses a shift that breaks rest rules and suggests a **rested colleague with the same skills**.
 - **Moving off paper takes one photo.** The employer photographs the old handwritten register. Gemini reads every row, imports the shifts and flags **overtime the paper never counted**.
 
@@ -21,7 +21,7 @@ FairShift fixes both sides, for people who may not read well, speak one of many 
 | Shift tracking, QR / location check-in, automatic overtime | QR poster scan (phone's built-in reader), GPS geofence, typed code, **crew check-in** for workers without phones; overtime split by day and week | `server/rules.ts` `splitHours`, `server/app.ts` `/w/shift/*`, `/admin/crew` |
 | Clear payslips in the worker's language | Visual pay breakdown with a one-line "why" per line; Gemini explains it aloud in their language; **tamper-evident shift receipts** | `rules.ts` `payslip`, `ai.ts` `explainPayslip`, `server/ledger.ts` |
 | Safety reporting by voice or text, with status tracking | Report by **photo, voice or text**; Gemini rates severity and gives safe advice in the worker's language; live alert to the manager; status visible to the worker (anonymous reporters get a tracking code) | `ai.ts` `triageHazard`, `/w/hazards`, `/admin/hazards/:id` |
-| Honest, anonymous feedback | No worker id stored, day-level dates only, averages hidden until **3+ responses** (k-anonymity); Gemini summarises themes without quoting anyone | `/w/feedback`, `ai.ts` `feedbackThemes`, `rules.ts` `ANONYMITY_MIN` |
+| Honest, anonymous feedback | No worker id stored, day-level dates only, averages hidden until a topic has **3+ responses**; Gemini summarises themes without quoting anyone | `/w/feedback`, `ai.ts` `feedbackThemes`, `rules.ts` `ANONYMITY_MIN` |
 | Skill passport | Portable passport with an unguessable QR link; employers add verified skills; used to suggest replacement workers | `/api/passport/:id`, `/admin/skills`, `/admin/roster` |
 | Fatigue alerts | Long shifts, short rest, no day off, weekly overload, plus a **roster guard** that blocks unsafe shifts | `rules.ts` `fatigueFlags`, `restProblems` |
 | Admin dashboard: attendance, complaints, quit risk | Live KPIs, attendance chart, safety queue, **explainable quit-risk score** (reasons, not a black box), minimum-wage check | `web/Admin.tsx`, `rules.ts` `quitRisk` |
@@ -92,6 +92,6 @@ The service account needs `roles/aiplatform.user` and `roles/datastore.user`.
 ## Scaling beyond the prototype
 
 - **New sector:** a new organisation with its own policy (overtime threshold, rest hours), roles and site; no code changes. A factory or warehouse works the same way.
-- **Many sites:** a Firestore document per organisation, and Pub/Sub for live events across Cloud Run instances.
+- **Many sites:** the prototype keeps one state document on a single instance. At scale: per-organisation Firestore collections (shifts, receipts, hazards), transactions for concurrent writes, Pub/Sub for live events across Cloud Run instances, and the receipt chain's latest hash anchored daily outside the employer's control.
 - **Phones without data:** an SMS or IVR channel can use the same voice assistant endpoint.
 - **Payroll and compliance:** registers already export as CSV, and the receipt chain gives auditors tamper evidence.

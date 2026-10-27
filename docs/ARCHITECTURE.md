@@ -13,7 +13,7 @@ flowchart LR
     W --> B[Browser speech fallback]
 ```
 
-Solid connections describe the existing application paths and deployment target. Dashed connections describe adapters present in the repository that still need wiring into the Express entry point. `server/index.ts` currently starts `createApp()` with seeded in-memory data; it does not yet call `openStore()`. The current worker speech helper uses browser recognition and synthesis. Cloud deployment and provider availability must be verified separately from local tests.
+All connections are live in the Cloud Run deployment. `server/index.ts` calls `openStore()`, which loads state from Firestore (seeding it on first start) and saves changes in batches; open dashboards receive changes over Server-Sent Events. The worker app records voice with the phone's microphone; the server transcribes it with Gemini and speaks replies with Cloud Text-to-Speech, falling back to the phone's own voice. Automated tests run with AI off (rule-based fallbacks); the Gemini and Text-to-Speech paths are exercised against the live service.
 
 ## Components and data flow
 
@@ -22,7 +22,7 @@ Solid connections describe the existing application paths and deployment target.
 - `server/seed.ts` creates deterministic demo organisations, workers, shifts, hazards, feedback and skills relative to a supplied date.
 - `server/ai.ts` calls Gemini on Vertex AI using Application Default Credentials. Payslip explanations receive calculated facts. Hazard triage and feedback themes have rule-based fallbacks when AI is disabled or unavailable. New photo, transcription and register helpers also live here; helper availability does not imply an exposed API route.
 - `server/speech.ts`: Gemini transcribes voice notes in 16 languages and Cloud Text-to-Speech speaks replies, with the phone's own voice as a fallback. All calls use the Cloud Run service account; no credentials reach the browser.
-- `server/store.ts` provides an in-memory store with change events and optional debounced Firestore persistence. Its current Firestore format stores the application state in one document. Production use needs per-organisation records and concurrent-write handling before scaling to multiple service instances.
+- `server/store.ts` keeps state in memory for fast reads, saves it to Firestore in debounced batches, and emits change events for live screens. The prototype stores the state as one document and runs as a single Cloud Run instance. To scale: one Firestore document set per organisation (shifts, receipts and hazards as subcollections), transactions for concurrent writes, and Pub/Sub to fan live events out across instances.
 
 The worker checks in using the assigned site's code or nearby GPS coordinates, checks out, and receives calculated hours and pay. An admin sees only their organisation's workers and hazards, can update a hazard's status, and receives feedback averages only above the anonymity threshold.
 

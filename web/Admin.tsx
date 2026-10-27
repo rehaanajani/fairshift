@@ -253,7 +253,7 @@ function WorkerVoice({ feedback }: { feedback: Overview["feedback"] }) {
     <section className="card" id="voice" aria-labelledby="voice-h">
       <div className="section-h"><MessagesSquare color="var(--gold)" aria-hidden="true" /><h2 id="voice-h" className="grow">Anonymous worker voice</h2></div>
       <div className="pad col">
-        <p className="small muted" style={{ margin: 0 }}>No names are stored. Averages appear only once 3 or more people have spoken on a topic, so nobody can be singled out.</p>
+        <p className="small muted" style={{ margin: 0 }}>No names are stored. Averages appear only once a topic has 3 or more responses, so a single person's answer can't be singled out.</p>
         {feedback.map((f) => (
           <div key={f.topic} className="row">
             <strong style={{ width: 110, textTransform: "capitalize" }}>{f.topic}</strong>
