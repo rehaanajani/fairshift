@@ -66,7 +66,7 @@ export function createApp(input: Store | Data = seed(), opts: { now?: () => Date
   // photos and voice notes are big; everything else is tiny
   const big = express.json({ limit: "8mb" });
   const small = express.json({ limit: "16kb" });
-  app.use((req, res, next) => (/\/(voice|hazards|register\/import)$/.test(req.path) ? big : small)(req, res, next));
+  app.use((req, res, next) => (/\/(voice|hazards|register\/(read|confirm))$/.test(req.path) ? big : small)(req, res, next));
   app.use((_req, res, next) => {
     res.set({
       "Content-Security-Policy":

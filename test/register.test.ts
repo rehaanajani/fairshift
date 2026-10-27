@@ -66,3 +66,11 @@ describe("paper register confirm step", () => {
     expect(html).toContain("<thead>");
   });
 });
+
+describe("large uploads", () => {
+  it("accepts a register photo bigger than the small-request limit (reaches validation, not a 413)", async () => {
+    const res = await post("/api/admin/register/read", { photo: "A".repeat(200_000), photoType: "image/gif" });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toContain("JPEG or PNG");
+  });
+});
