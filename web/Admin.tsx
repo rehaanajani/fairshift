@@ -66,7 +66,7 @@ export function Admin({ orgs, onSwitch, onLogout }: { orgs: { id: string; name: 
     <div className="admin">
       <a className="skip" href="#main">Skip to dashboard</a>
       <aside className="side" aria-label="Employer">
-        <a href="#/" className="logo"><span className="logo-mark" aria-hidden="true">F</span>FairShift</a>
+        <a href="#/" className="logo"><img src="/logo.svg" alt="" width={36} height={36} />FairShift</a>
         <label className="col" style={{ gap: 6 }}>
           <span className="tiny side-label" style={{ fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: "var(--muted)" }}>Workplace</span>
           <select className="select" value={o.org.id} onChange={(e) => onSwitch(e.target.value)} aria-label="Switch workplace">

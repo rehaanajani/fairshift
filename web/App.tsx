@@ -176,6 +176,28 @@ function AdminGate() {
 
 /** The judges' view: the worker's phone and the employer's dashboard, live, side by side. */
 function Demo() {
+  const [narrow, setNarrow] = useState(() => window.innerWidth < 900);
+  const [tab, setTab] = useState<"worker" | "admin">("worker");
+  useEffect(() => {
+    const on = () => setNarrow(window.innerWidth < 900);
+    window.addEventListener("resize", on);
+    return () => window.removeEventListener("resize", on);
+  }, []);
+  // on a phone there is no room for both screens: switch between them instead
+  if (narrow)
+    return (
+      <main className="demo-mobile" id="main">
+        <div className="demo-tabs" role="tablist" aria-label="Demo view">
+          {(["worker", "admin"] as const).map((t) => (
+            <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>
+              {t === "worker" ? "Worker's phone" : "Employer dashboard"}
+            </button>
+          ))}
+        </div>
+        <iframe key="w" src="#/worker?embed" title="Worker app" allow="microphone; camera; geolocation; autoplay" hidden={tab !== "worker"} />
+        <iframe key="a" src="#/admin?embed" title="Employer dashboard" allow="camera; autoplay" hidden={tab !== "admin"} />
+      </main>
+    );
   return (
     <main className="demo" id="main">
       <div style={{ display: "grid", alignContent: "center" }}>

@@ -4,11 +4,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 export function Logo({ light }: { light?: boolean }) {
   return (
     <a href="#/" className="logo" style={light ? { color: "#fff" } : undefined} aria-label="FairShift home">
-      <span className="logo-mark" aria-hidden="true">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
-          <path d="M6 20V5h12M6 12h9" />
-        </svg>
-      </span>
+      <img src="/logo.svg" alt="" width={38} height={38} />
       FairShift
     </a>
   );
