@@ -14,6 +14,37 @@ FairShift fixes both sides, for people who may not read well, speak one of many 
 - **Fatigue is stopped before it starts.** The roster refuses a shift that breaks rest rules and suggests a **rested colleague with the same skills**.
 - **Moving off paper takes one photo.** The employer photographs the old handwritten register. Gemini reads every row, the employer **reviews and confirms** who each row belongs to, and FairShift saves the shifts (all or nothing, each receipt naming the photo) and flags **overtime the paper never counted**.
 
+## Chosen vertical
+
+**FairShift: Decent Work Platform (UN SDG 8, Decent Work and Economic Growth).** Persona: daily-wage and shift workers in employee-intensive workplaces (construction sites, hospitals, college campus services) who may read little, speak one of many Indian languages and own a basic smartphone, and the supervisors and employers who manage them.
+
+## Approach and logic
+
+FairShift is a **smart, context-aware assistant** wrapped around a ledger of facts that can't be argued with:
+
+1. **Facts first, AI second.** Every shift is recorded (QR, GPS or crew check-in) and sealed into a hash-chained receipt. Pay, overtime, fatigue and quit risk are computed by deterministic, tested rules in `server/rules.ts`; the AI never invents a number.
+2. **Decisions use the user's own context.** When a worker speaks, the assistant receives *their* records (hours, overtime, deductions, rest, next shift, skills) and answers in their language; it classifies what they need (pay, hazard, grievance, shift, leave) and offers the right next action, e.g. "Report this danger" with their words already filled in.
+3. **Rules decide before harm happens.** The roster refuses a shift that breaks rest rules for *that* worker (open shift, under 10 hours' rest, 7th day in a row, weekly overload) and ranks rested colleagues by job, shared skills and risk.
+4. **Privacy by design.** Anonymous reports store no identity; feedback stores no worker id, and topics are only summarised once they have 3+ responses.
+5. **Humans confirm what AI reads.** Paper registers go through read → review → confirm; nothing reaches payroll until the employer checks every row.
+
+## How it works
+
+1. A worker opens the app in their language and checks in by scanning the site QR (or by location, or the supervisor checks the crew in).
+2. At check-out they get a receipt code; their pay screen shows regular hours, overtime, PF and ESI with a plain-language reason for each line, and "Explain my pay" reads it aloud.
+3. They hold the mic and ask anything; Gemini answers from their records and Cloud Text-to-Speech speaks the answer.
+4. They report a danger by photo, voice or text; Gemini rates severity and gives safety advice; the employer dashboard alerts live (Server-Sent Events) and the worker sees the status change.
+5. The employer sees attendance, overtime cost, fatigue and explainable quit risk, plans shifts through the rest-rule guard, imports old paper registers, and downloads or prints inspection-ready registers.
+
+## Assumptions
+
+- Overtime starts after the employer's daily limit (8 or 9 hours) or 48 hours a week, paid at 2×, as under India's Factories Act / OSH Code; PF is 12% of regular pay and ESI 0.75% of gross. Each employer can change these in its policy.
+- Working days and weeks follow Indian Standard Time; timestamps are stored in UTC.
+- The minimum-wage check uses ₹75/hour (₹600 for an 8-hour day) as the lowest applicable state rate.
+- Workers have at least a basic Android or iPhone with a browser; those who don't are checked in by their supervisor.
+- This is a prototype with synthetic demo data and shared demo PINs (workers 1234, employers 4321); a real rollout would use individual enrolment, per-organisation storage and multiple instances (see *Scaling* below).
+- The ₹2.5 lakh/month impact figure in the video is an illustrative estimate, not a measured result.
+
 ## Problem statement coverage
 
 | Brief asks for | FairShift | Where |
