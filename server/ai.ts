@@ -4,15 +4,19 @@
  * service account (ADC), so there is no API key anywhere. Every call has a rule-based fallback, so the
  * app keeps working if the model is slow or unavailable.
  */
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel, Type } from "@google/genai";
 import { LANG_NAME, LANGS, type Feedback, type Lang } from "./types.ts";
 
 type Part = { text: string } | { inlineData: { data: string; mimeType: string } };
-/** Fast model first; if it is overloaded or slow, the stronger one answers instead. */
-const FAST = [process.env.GEMINI_MODEL || "gemini-3.5-flash-lite", process.env.GEMINI_FALLBACK_MODEL || "gemini-3.5-flash"];
-/** Handwriting is hard: the stronger model reads registers first. */
-const VISION = [FAST[1]!, FAST[0]!];
-const TIMEOUT_MS = 15_000;
+const MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
+const DEEP_MODEL = process.env.GEMINI_DEEP_MODEL || "gemini-4-argon";
+/** Only used if the main models are overloaded, so a worker is never left waiting. */
+const BACKUP_MODEL = process.env.GEMINI_BACKUP_MODEL || "gemini-3.5-flash-lite";
+/** Conversations: Gemini 3.8 Flash with light thinking answers in a few seconds. */
+const FAST = [MODEL, BACKUP_MODEL];
+/** Handwritten registers and feedback themes: the strongest model reasons first. */
+const VISION = [DEEP_MODEL, MODEL, BACKUP_MODEL];
+const TIMEOUT_MS = 20_000;
 
 let client: GoogleGenAI | null | undefined;
 function ai(): GoogleGenAI | null {
@@ -40,6 +44,7 @@ async function generateWith<T>(c: GoogleGenAI, model: string, prompt: string | P
         contents: typeof prompt === "string" ? prompt : [{ role: "user", parts: prompt }],
         config: {
           temperature: 0.2,
+          ...(model.startsWith("gemini-3.8") ? { thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } } : {}),
           maxOutputTokens: 4000,
           ...(schema ? { responseMimeType: "application/json", responseSchema: schema } : {}),
         },
@@ -152,6 +157,7 @@ ${items.map((f) => `- [${f.topic}, ${f.rating}/5] ${f.text}`).join("\n")}`,
       },
       required: ["themes", "action"],
     },
+    VISION,
   );
   if (out && typeof out !== "string") return { ...out, themes: out.themes.slice(0, 4), source: "gemini" };
   const byTopic = new Map<string, Feedback[]>();
