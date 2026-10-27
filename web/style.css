@@ -187,10 +187,14 @@ label.field { display: grid; gap: 6px; font-weight: 600; font-size: 14px; }
 .modal { width: min(560px, 100%); max-height: 90vh; overflow: auto; padding: 26px; display: grid; gap: 14px; }
 .live-dot { width: 9px; height: 9px; border-radius: 50%; background: #65a30d; box-shadow: 0 0 0 4px rgb(101 163 13 / 22%); display: inline-block; }
 .drop { border: 2px dashed #c5c8b8; border-radius: 24px; padding: 18px; display: grid; gap: 10px; justify-items: center; text-align: center; background: #fafcfa; }
-@media (max-width: 960px) {
+@media (max-width: 1280px) {
   .admin { grid-template-columns: 1fr; }
-  .side { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; }
-  .side nav { display: none; }
+  .side { position: sticky; top: 0; z-index: 5; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 18px; border-right: none; border-bottom: 1px solid var(--line); }
+  .side nav, .side .side-label { display: none; }
+  .side label.col { flex: 1; min-width: 200px; max-width: 360px; }
+  .side .grow { display: none; }
+}
+@media (max-width: 1100px) {
   .grid2 { grid-template-columns: 1fr; }
   .main { padding: 16px; }
   .table-wrap { overflow-x: auto; }

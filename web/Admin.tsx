@@ -68,7 +68,7 @@ export function Admin({ orgs, onSwitch, onLogout }: { orgs: { id: string; name: 
       <aside className="side" aria-label="Employer">
         <a href="#/" className="logo"><span className="logo-mark" aria-hidden="true">F</span>FairShift</a>
         <label className="col" style={{ gap: 6 }}>
-          <span className="tiny" style={{ fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: "var(--muted)" }}>Workplace</span>
+          <span className="tiny side-label" style={{ fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: "var(--muted)" }}>Workplace</span>
           <select className="select" value={o.org.id} onChange={(e) => onSwitch(e.target.value)} aria-label="Switch workplace">
             {orgs.map((x) => <option key={x.id} value={x.id}>{x.name} · {SECTOR_LABEL[x.sector]}</option>)}
           </select>
