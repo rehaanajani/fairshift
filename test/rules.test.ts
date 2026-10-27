@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_POLICY, distanceM, fatigueFlags, payslip, quitRisk, splitHours, type RiskInput } from "../server/rules.ts";
+import { DEFAULT_POLICY, distanceM, fatigueFlags, payslip, quitRisk, restProblems, splitHours, type RiskInput } from "../server/rules.ts";
 import type { Shift, Worker } from "../server/types.ts";
 
 process.env.FAIRSHIFT_AI = "off";
@@ -128,6 +128,58 @@ describe("fatigueFlags", () => {
   it("does not count two shifts on one day as two working days", () => {
     const shifts = [...days(1, 6), shift("2026-10-19T20:00:00.000Z", 1)];
     expect(fatigueFlags(shifts, DEFAULT_POLICY, fixed).some((f) => f.kind === "no-day-off")).toBe(false);
+  });
+});
+
+describe("restProblems", () => {
+  const check = (existing: { start: string; end?: string }[], planned: Shift) =>
+    restProblems(existing, planned.start, planned.end!, DEFAULT_POLICY, fixed);
+
+  it("rejects overlapping shifts", () => {
+    expect(check([shift("2026-10-19T08:00:00.000Z", 8)], shift("2026-10-19T12:00:00.000Z", 4)))
+      .toEqual(["overlaps another shift"]);
+  });
+
+  it("uses the injected clock as the end of an open shift", () => {
+    expect(check([{ start: "2026-10-27T08:00:00.000Z" }], shift("2026-10-27T10:00:00.000Z", 4)))
+      .toEqual(["overlaps another shift"]);
+  });
+
+  it.each([
+    { start: "2026-10-20T01:30:00.000Z", rest: 9.5 },
+    { start: "2026-10-20T02:00:00.000Z", rest: 10 },
+  ])("requires ten hours of rest before a planned shift ($rest hours)", ({ start, rest }) => {
+    const problems = check([shift("2026-10-19T08:00:00.000Z", 8)], shift(start, 8));
+    expect(problems).toEqual(rest < 10 ? ["only 9.5 hours of rest next to another shift (needs 10)"] : []);
+  });
+
+  it("also checks rest before an existing future shift", () => {
+    expect(check([shift("2026-10-20T01:30:00.000Z", 8)], shift("2026-10-19T08:00:00.000Z", 8)))
+      .toEqual(["only 9.5 hours of rest next to another shift (needs 10)"]);
+  });
+
+  it.each([12, 12.5])("rejects planned shifts only above the 12-hour maximum (%s hours)", (hours) => {
+    expect(check([], shift("2026-10-19T08:00:00.000Z", hours)))
+      .toEqual(hours > 12 ? ["12.5 hour shift is over the 12 hour limit"] : []);
+  });
+
+  it.each([10, 11])("checks weekly hours against the 60-hour cap (%s hours added)", (hours) => {
+    // Five ten-hour days plus Saturday: exactly 60 is allowed, 61 is refused.
+    expect(check(days(10, 5), shift("2026-10-24T08:00:00.000Z", hours)))
+      .toEqual(hours === 11 ? ["would make 61 hours this week"] : []);
+  });
+
+  it("does not add last week's hours to a new Monday", () => {
+    expect(check(days(10, 6), shift("2026-10-26T08:00:00.000Z", 8))).toEqual([]);
+  });
+
+  it("rejects the seventh consecutive working day", () => {
+    expect(check(days(4, 6), shift("2026-10-25T08:00:00.000Z", 4)))
+      .toEqual(["day 7 in a row without a day off"]);
+  });
+
+  it("allows a shift after a day off resets the streak", () => {
+    expect(check(days(4, 5), shift("2026-10-25T08:00:00.000Z", 4))).toEqual([]);
   });
 });
 
