@@ -8,8 +8,11 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { LANG_NAME, LANGS, type Feedback, type Lang } from "./types.ts";
 
 type Part = { text: string } | { inlineData: { data: string; mimeType: string } };
-const MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
-const TIMEOUT_MS = 25_000;
+/** Fast model first; if it is overloaded or slow, the stronger one answers instead. */
+const FAST = [process.env.GEMINI_MODEL || "gemini-3.5-flash-lite", process.env.GEMINI_FALLBACK_MODEL || "gemini-3.5-flash"];
+/** Handwriting is hard: the stronger model reads registers first. */
+const VISION = [FAST[1]!, FAST[0]!];
+const TIMEOUT_MS = 15_000;
 
 let client: GoogleGenAI | null | undefined;
 function ai(): GoogleGenAI | null {
@@ -19,13 +22,21 @@ function ai(): GoogleGenAI | null {
   return client;
 }
 
-async function generate<T>(prompt: string | Part[], schema?: object): Promise<T | string | null> {
+async function generate<T>(prompt: string | Part[], schema?: object, models: string[] = FAST): Promise<T | string | null> {
   const c = ai();
   if (!c) return null;
+  for (const model of models) {
+    const out = await generateWith<T>(c, model, prompt, schema);
+    if (out !== null) return out;
+  }
+  return null;
+}
+
+async function generateWith<T>(c: GoogleGenAI, model: string, prompt: string | Part[], schema?: object): Promise<T | string | null> {
   try {
     const res = await Promise.race([
       c.models.generateContent({
-        model: MODEL,
+        model,
         contents: typeof prompt === "string" ? prompt : [{ role: "user", parts: prompt }],
         config: {
           temperature: 0.2,
@@ -39,7 +50,7 @@ async function generate<T>(prompt: string | Part[], schema?: object): Promise<T 
     if (!text) return null;
     return schema ? (JSON.parse(text) as T) : text;
   } catch (e) {
-    console.warn("gemini:", (e as Error).message);
+    console.warn(`gemini ${model}:`, (e as Error).message.slice(0, 160));
     return null;
   }
 }
@@ -248,6 +259,7 @@ Times as 24-hour HH:MM (convert am/pm; a shift may end after midnight). Skip bla
       },
       required: ["rows"],
     },
+    VISION,
   );
   if (!out || typeof out === "string") return null;
   return out.rows.filter((r) => /^\d{4}-\d{2}-\d{2}$/.test(r.date) && /^\d{1,2}:\d{2}$/.test(r.in) && /^\d{1,2}:\d{2}$/.test(r.out)).slice(0, 300);
