@@ -10,7 +10,7 @@ Language barriers and scattered attendance records make those questions harder t
 
 FairShift is our prototype for decent work: site check-ins, explainable payslips, fatigue warnings, anonymous hazard reporting, worker feedback and skill records.
 
-Pay calculations use testable rules. Gemini on Vertex AI helps explain the numbers and triage reports, with rule-based fallbacks. Workers can use multilingual text and browser speech; Sarvam speech and Firestore adapters provide the next integration path.
+Pay calculations use testable rules. Gemini on Vertex AI helps explain the numbers and triage reports, with rule-based fallbacks. Workers just talk: Gemini understands 16 Indian languages and Google Cloud Text-to-Speech answers out loud. Data lives in Firestore.
 
 Feedback averages stay hidden until a topic has at least three entries. Admin access is scoped to the employer, and anonymous hazard reports omit the reporter's identity.
 

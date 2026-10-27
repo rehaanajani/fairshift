@@ -164,7 +164,7 @@ ${items.map((f) => `- [${f.topic}, ${f.rating}/5] ${f.text}`).join("\n")}`,
   return { themes, action: worst ? `Look into ${worst.title.toLowerCase()} first: it has the lowest ratings.` : "No urgent issues this week.", source: "rules" };
 }
 
-/** Speech to text for the languages Sarvam doesn't cover (and as Sarvam's fallback). */
+/** Speech to text in any supported language, including code-mixed speech. */
 export async function transcribeWithGemini(audio: Buffer, mimeType: string, hint: Lang): Promise<{ text: string; lang: Lang } | null> {
   const out = await generate<{ text: string; lang: string }>(
     [

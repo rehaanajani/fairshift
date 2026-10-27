@@ -1,5 +1,5 @@
 export type Sector = "construction" | "hospital" | "college" | "factory";
-/** 16 languages: the 11 Sarvam speaks natively, plus 5 more through Gemini. */
+/** 16 languages: understood by Gemini, spoken by Cloud Text-to-Speech. */
 export const LANGS = ["en", "hi", "bn", "ta", "te", "kn", "ml", "mr", "gu", "pa", "or", "as", "ur", "ne", "kok", "mai"] as const;
 export type Lang = (typeof LANGS)[number];
 export const LANG_NAME: Record<Lang, string> = {

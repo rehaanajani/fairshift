@@ -8,7 +8,7 @@ flowchart LR
     A[Admin browser] -->|HTTPS and bearer token| E
     E --> R[Pure rules: hours, pay, fatigue, quit risk]
     E -->|Service account / ADC| G[Gemini on Vertex AI]
-    E -.->|Speech adapter: server-side credential| S[Sarvam speech: STT and TTS]
+    E -->|Speech| S[Gemini speech-to-text + Cloud Text-to-Speech]
     E -.->|Store adapter: service account / ADC| F[(Firestore)]
     W --> B[Browser speech fallback]
 ```
@@ -21,7 +21,7 @@ Solid connections describe the existing application paths and deployment target.
 - `server/rules.ts` calculates daily overtime first, then weekly overtime from the remaining regular hours to avoid double counting. PF uses regular pay; ESI uses gross pay. Fatigue flags and quit-risk reasons are explainable signals for a manager to investigate.
 - `server/seed.ts` creates deterministic demo organisations, workers, shifts, hazards, feedback and skills relative to a supplied date.
 - `server/ai.ts` calls Gemini on Vertex AI using Application Default Credentials. Payslip explanations receive calculated facts. Hazard triage and feedback themes have rule-based fallbacks when AI is disabled or unavailable. New photo, transcription and register helpers also live here; helper availability does not imply an exposed API route.
-- `server/speech.ts` provides Sarvam transcription and synthesis, with Gemini transcription, Google Cloud TTS and browser fallback paths. Credentials remain on the service, never in the client bundle.
+- `server/speech.ts`: Gemini transcribes voice notes in 16 languages and Cloud Text-to-Speech speaks replies, with the phone's own voice as a fallback. All calls use the Cloud Run service account; no credentials reach the browser.
 - `server/store.ts` provides an in-memory store with change events and optional debounced Firestore persistence. Its current Firestore format stores the application state in one document. Production use needs per-organisation records and concurrent-write handling before scaling to multiple service instances.
 
 The worker checks in using the assigned site's code or nearby GPS coordinates, checks out, and receives calculated hours and pay. An admin sees only their organisation's workers and hazards, can update a hazard's status, and receives feedback averages only above the anonymity threshold.
@@ -32,7 +32,7 @@ Login issues HMAC-SHA256 signed bearer tokens with a 12-hour lifetime. `requireR
 
 PIN comparison uses constant-time primitives. Login and selected AI routes have per-process rate limits; JSON input has a size limit. Responses set CSP, HSTS, frame restrictions and content-type protections. The browser helper stores tokens in `sessionStorage` and sends them in the Authorization header.
 
-The seed's shared demo PINs and public demo login listing are prototype conveniences. A production rollout should replace them with proper enrolment and hashed credentials, use a stable `SESSION_SECRET` from Secret Manager, enforce HTTPS, restrict service-account permissions and provide rate limiting shared across instances. Vertex AI uses ADC; Sarvam uses a server-side API key. Model output is advisory, while payroll remains deterministic.
+The seed's shared demo PINs and public demo login listing are prototype conveniences. A production rollout should replace them with proper enrolment and hashed credentials, use a stable `SESSION_SECRET` from Secret Manager, enforce HTTPS, restrict service-account permissions and provide rate limiting shared across instances. Vertex AI, Firestore and Text-to-Speech all use the service account (ADC); there are no API keys. Model output is advisory, while payroll remains deterministic.
 
 ## Privacy and anonymity
 
