@@ -155,7 +155,10 @@ export type FatigueKind = "long-shift" | "short-rest" | "no-day-off" | "week-ove
 export interface FatigueFlag {
   kind: FatigueKind;
   at: string;
+  /** English sentence for the employer; the worker app builds its own from value and limit */
   detail: string;
+  value: number;
+  limit: number;
 }
 
 /** Flags shifts that are too long, too close together, or without a weekly day off. */
@@ -168,12 +171,12 @@ export function fatigueFlags(shifts: Shift[], policy: Policy, now = new Date()):
   for (let i = 0; i < sorted.length; i++) {
     const s = sorted[i]!;
     const h = shiftHours(s, now);
-    if (h > policy.maxShiftHours) flags.push({ kind: "long-shift", at: s.start, detail: `${round2(h)} hour shift (limit ${policy.maxShiftHours})` });
+    if (h > policy.maxShiftHours) flags.push({ kind: "long-shift", at: s.start, detail: `${round2(h)} hour shift (limit ${policy.maxShiftHours})`, value: round2(h), limit: policy.maxShiftHours });
 
     const prev = sorted[i - 1];
     if (prev?.end) {
       const rest = (new Date(s.start).getTime() - new Date(prev.end).getTime()) / HOUR;
-      if (rest < policy.minRestHours) flags.push({ kind: "short-rest", at: s.start, detail: `only ${round2(rest)} hours rest between shifts (need ${policy.minRestHours})` });
+      if (rest < policy.minRestHours) flags.push({ kind: "short-rest", at: s.start, detail: `only ${round2(rest)} hours rest between shifts (need ${policy.minRestHours})`, value: round2(rest), limit: policy.minRestHours });
     }
 
     const day = localDay(s.start);
@@ -181,14 +184,14 @@ export function fatigueFlags(shifts: Shift[], policy: Policy, now = new Date()):
       const gap = lastDay ? (new Date(day).getTime() - new Date(lastDay).getTime()) / (24 * HOUR) : 99;
       streak = gap === 1 ? streak + 1 : 1;
       lastDay = day;
-      if (streak === policy.maxConsecutiveDays + 1) flags.push({ kind: "no-day-off", at: s.start, detail: `${streak} days in a row without a day off` });
+      if (streak === policy.maxConsecutiveDays + 1) flags.push({ kind: "no-day-off", at: s.start, detail: `${streak} days in a row without a day off`, value: streak, limit: policy.maxConsecutiveDays });
     }
 
     const wk = weekOf(s.start);
     const before = weekly.get(wk) ?? 0;
     weekly.set(wk, before + h);
     const cap = policy.weeklyHours + 12;
-    if (before <= cap && before + h > cap) flags.push({ kind: "week-over-limit", at: s.start, detail: `over ${cap} hours this week` });
+    if (before <= cap && before + h > cap) flags.push({ kind: "week-over-limit", at: s.start, detail: `over ${cap} hours this week`, value: round2(before + h), limit: cap });
   }
   return flags;
 }
