@@ -63,7 +63,7 @@ export async function synthesize(text: string, lang: Lang): Promise<Spoken | nul
       const res = await fetch(`${SARVAM}/text-to-speech`, {
         method: "POST",
         headers: { "api-subscription-key": key()!, "content-type": "application/json" },
-        body: JSON.stringify({ text: clipped, target_language_code: code, model: process.env.SARVAM_TTS_MODEL || "bulbul:v2", speaker: process.env.SARVAM_SPEAKER || "anushka", pace: 0.95 }),
+        body: JSON.stringify({ text: clipped, target_language_code: code, model: process.env.SARVAM_TTS_MODEL || "bulbul:v3", speaker: process.env.SARVAM_SPEAKER || "priya", pace: 0.95 }),
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });
       if (res.ok) {
