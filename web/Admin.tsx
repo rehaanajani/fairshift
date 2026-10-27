@@ -133,11 +133,13 @@ export function Admin({ orgs, onSwitch, onLogout }: { orgs: { id: string; name: 
             <div className="section-h"><Receipt color="var(--brand)" aria-hidden="true" /><h2 className="grow">Latest receipts</h2></div>
             <div className="pad col" style={{ gap: 8 }}>
               {o.ledger.latest.map((r) => (
-                <div key={r.code} className="row small">
-                  <a className="mono" href={`#/r/${r.code}`} target="_blank" rel="noreferrer" style={{ fontWeight: 700 }}>{r.code}</a>
-                  <span className="grow">{r.name}</span>
-                  <span>{r.hours} h{r.overtime > 0 && <span className="chip gold" style={{ marginLeft: 6 }}>+{r.overtime} OT</span>}</span>
-                  {r.kind === "correction" && <span className="chip blue">corrected</span>}
+                <div key={r.code} className="receipt-row small">
+                  <span className="col" style={{ gap: 0 }}>
+                    <strong className="ellipsis">{r.name}</strong>
+                    <a className="mono tiny" href={`#/r/${r.code}`} target="_blank" rel="noreferrer">{r.code}</a>
+                  </span>
+                  <span className="num">{r.hours} h</span>
+                  {r.overtime > 0 ? <span className="chip gold">+{r.overtime} OT</span> : r.kind === "correction" ? <span className="chip blue">corrected</span> : <span />}
                 </div>
               ))}
             </div>

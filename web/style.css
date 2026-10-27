@@ -208,3 +208,11 @@ label.field { display: grid; gap: 6px; font-weight: 600; font-size: 14px; }
 .phone-body > *, .row > *, .shift-card * { min-width: 0; }
 .shift-card .chip { white-space: normal; text-align: center; }
 .phone-top h1 { overflow-wrap: anywhere; }
+.receipt-row { display: grid; grid-template-columns: minmax(0, 1fr) auto 92px; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.receipt-row:last-child { border-bottom: none; }
+.receipt-row .chip { justify-self: end; }
+.ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.num { font-variant-numeric: tabular-nums; font-weight: 600; }
+.mono { color: var(--muted); }
+a.mono { text-decoration: none; }
+a.mono:hover { text-decoration: underline; }

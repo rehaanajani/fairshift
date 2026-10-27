@@ -31,12 +31,18 @@ export class ApiError extends Error {
 const roleFor = (path: string): Role => (path.startsWith("/admin") ? "admin" : "worker");
 
 export async function api<T>(path: string, init: { method?: string; body?: unknown; role?: Role } = {}): Promise<T> {
-  const token = session.get(init.role ?? roleFor(path));
+  const role = init.role ?? roleFor(path);
+  const token = session.get(role);
   const res = await fetch(`/api${path}`, {
     method: init.method ?? (init.body ? "POST" : "GET"),
     headers: { ...(init.body ? { "content-type": "application/json" } : {}), ...(token ? { "x-session": token } : {}) },
     body: init.body ? JSON.stringify(init.body) : undefined,
   });
+  // an expired login (e.g. after a server update) goes back to the sign-in screen instead of a dead end
+  if (res.status === 401 && token) {
+    session.set(role, null);
+    location.reload();
+  }
   const data = res.headers.get("content-type")?.includes("json") ? await res.json() : await res.text();
   if (!res.ok) throw new ApiError((data as { error?: string })?.error ?? "Something went wrong. Try again.", res.status, data);
   return data as T;
