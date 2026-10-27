@@ -281,7 +281,10 @@ export function createApp(input: Store | Data = seed(), opts: { now?: () => Date
 
   w.post("/hazards", limit(10), async (req, res) => {
     const m = me(req);
-    const body = text(req.body?.text, 1000) ?? "";
+    let body = text(req.body?.text, 1000) ?? "";
+    const audio = b64(req.body?.audio, 4_000_000);
+    const audioType = text(req.body?.audioType, 60) ?? "";
+    if (!body && audio && AUDIO.test(audioType)) body = (await transcribe(Buffer.from(audio, "base64"), audioType, lang(req.body?.lang) ?? m.lang))?.text ?? "";
     const photo = b64(req.body?.photo, 5_000_000);
     const mimeType = text(req.body?.photoType, 30) ?? "";
     if (!body && !photo) return void res.status(400).json({ error: "Tell us or show us what the danger is." });
