@@ -1,48 +1,51 @@
-/** Speech in and out using the phone's own engines: free, offline-capable on Android, and fine on cheap phones. */
-import { SPEECH, type Lang } from "./i18n";
+/** Voice in and out. Recording uses the phone's microphone; Gemini on the server understands it. */
+import { api, fileToBase64, type Role } from "./api";
 
-type Recognition = {
-  lang: string;
-  interimResults: boolean;
-  continuous: boolean;
-  start(): void;
-  stop(): void;
-  onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }> }) => void) | null;
-  onend: (() => void) | null;
-  onerror: ((e: { error: string }) => void) | null;
-};
+export const canRecord = typeof MediaRecorder !== "undefined" && !!navigator.mediaDevices?.getUserMedia;
 
-const Ctor = (globalThis as unknown as { SpeechRecognition?: new () => Recognition; webkitSpeechRecognition?: new () => Recognition }).SpeechRecognition ??
-  (globalThis as unknown as { webkitSpeechRecognition?: new () => Recognition }).webkitSpeechRecognition;
+/** Starts recording; call the returned function to stop and get the audio as base64. */
+export async function record(): Promise<() => Promise<{ data: string; type: string } | null>> {
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+  const type = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg"].find((t) => MediaRecorder.isTypeSupported(t)) ?? "";
+  const rec = new MediaRecorder(stream, type ? { mimeType: type } : undefined);
+  const chunks: Blob[] = [];
+  rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+  rec.start();
+  const started = Date.now();
+  return () =>
+    new Promise((resolve) => {
+      rec.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        if (Date.now() - started < 400 || !chunks.length) return resolve(null);
+        const blob = new Blob(chunks, { type: rec.mimeType || "audio/webm" });
+        const out = await fileToBase64(blob);
+        resolve({ data: out.data, type: (rec.mimeType || "audio/webm").split(";")[0]! });
+      };
+      rec.stop();
+    });
+}
 
-export const canListen = !!Ctor;
+let current: HTMLAudioElement | null = null;
 
-/** Starts dictation; calls onText with the running transcript. Returns a stop function. */
-export function listen(lang: Lang, onText: (text: string) => void, onEnd: () => void): () => void {
-  if (!Ctor) {
-    onEnd();
-    return () => {};
+export function stopSpeaking() {
+  current?.pause();
+  current = null;
+  globalThis.speechSynthesis?.cancel();
+}
+
+/** Plays server audio if we have it; otherwise asks the server for it; otherwise uses the phone's own voice. */
+export async function speak(text: string, lang: string, role: Role, ready?: { audio: string | null; mime?: string } | null) {
+  stopSpeaking();
+  let clip = ready?.audio ? ready : null;
+  if (!clip) clip = await api<{ audio: string | null; mime?: string }>("/speech", { body: { text, lang }, role }).catch(() => null);
+  if (clip?.audio) {
+    current = new Audio(`data:${clip.mime ?? "audio/wav"};base64,${clip.audio}`);
+    await current.play().catch(() => {});
+    return;
   }
-  const r = new Ctor();
-  r.lang = SPEECH[lang];
-  r.interimResults = true;
-  r.continuous = true;
-  r.onresult = (e) => onText(Array.from(e.results, (res) => res[0]?.transcript ?? "").join(" "));
-  r.onend = onEnd;
-  r.onerror = onEnd;
-  r.start();
-  return () => r.stop();
+  if ("speechSynthesis" in globalThis) {
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = `${lang}-IN`;
+    speechSynthesis.speak(u);
+  }
 }
-
-export function speak(text: string, lang: Lang) {
-  if (!("speechSynthesis" in globalThis)) return;
-  speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = SPEECH[lang];
-  const voice = speechSynthesis.getVoices().find((v) => v.lang.replace("_", "-").startsWith(SPEECH[lang].slice(0, 2)));
-  if (voice) u.voice = voice;
-  u.rate = 0.95;
-  speechSynthesis.speak(u);
-}
-
-export const stopSpeaking = () => globalThis.speechSynthesis?.cancel();
