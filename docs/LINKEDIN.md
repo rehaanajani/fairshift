@@ -1,21 +1,24 @@
-# LinkedIn post draft
+# LinkedIn post
 
-**Problem**
+Millions of Indians build our towers, clean our hospitals and run our campuses, and their working lives still sit in a paper register.
 
-For shift workers, a long day can end with unanswered questions: Was my overtime counted? Why was money deducted? Can I report a hazard without putting my job at risk?
+**The problem.** A mason can't check whether his overtime was counted. A ward attendant won't complain because her name goes with the complaint. A torn safety net gets reported after someone falls. And when they change jobs, their experience restarts from zero. Most of them read little English and own a basic phone.
 
-Language barriers and scattered attendance records make those questions harder to resolve. Employers also need a clearer view of unsafe workloads and concerns that never reach a supervisor.
+**What I built for #PromptWars: FairShift.**
+🎙 **Nobody types.** Workers hold one button and speak in any of 16 Indian languages. Gemini answers from their own pay and shift records, out loud.
+🧾 **Every hour gets a receipt.** Shifts are sealed into a tamper-evident hash chain. If hours are edited later, the worker sees it, with the reason.
+📸 **Danger, reported with a photo.** Gemini rates the risk and alerts the manager live. Anonymous if they want.
+🛑 **Fatigue stopped before it starts.** The roster refuses unsafe back-to-back shifts and suggests a rested colleague.
+📒 **Off paper in one photo.** Snap the old handwritten register: Gemini reads it and flags the overtime nobody paid.
+🪪 A QR **skill passport** that travels with the worker.
 
-**What we built**
+**Why it fits SDG 8.** Fair pay you can verify, safe workplaces and a voice without fear, across construction sites, hospitals and colleges, with one engine. Employers adopt it because it produces the attendance, overtime and wage registers labour law already demands.
 
-FairShift is our prototype for decent work: site check-ins, explainable payslips, fatigue warnings, anonymous hazard reporting, worker feedback and skill records.
+Built on Google Cloud: Cloud Run, Gemini 3.8 Flash and Gemini 4 Argon on Vertex AI, Cloud Text-to-Speech and Firestore.
 
-Pay calculations use testable rules. Gemini on Vertex AI helps explain the numbers and triage reports, with rule-based fallbacks. Workers just talk: Gemini understands 16 Indian languages and Google Cloud Text-to-Speech answers out loud. Data lives in Firestore.
+🔗 Live: https://fairshift-85398896185.asia-south1.run.app/#/demo
+💻 Code: https://github.com/rehaanajani/fairshift
 
-Feedback averages stay hidden until a topic has at least three entries. Admin access is scoped to the employer, and anonymous hazard reports omit the reporter's identity.
+Thanks to ACM SRM and Hack2Skill for #PromptWars.
 
-**How it fits**
-
-Built around UN SDG 8, FairShift connects worker clarity with practical employer action across construction sites, hospitals and college services. Our Google Cloud deployment target is Cloud Run: a shared foundation for clearer pay, safer shifts and better conversations at work.
-
-#PromptWars #SDG8 #GoogleCloud
+#PromptWars #SDG8 #DecentWork #GoogleCloud #Gemini #VertexAI #CloudRun #BuildWithAI #ACMSRM
