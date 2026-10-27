@@ -121,6 +121,8 @@ export function seed(now = new Date()): Data {
     fb("orion", "manager", 3, "Supervisor is fair but shouts when work is behind", 5),
     fb("orion", "safety", 2, "Harness is shared between three people", 6),
     fb("orion", "conditions", 1, "Working 7 days, no rest day for a month", 4),
+    fb("orion", "pay", 2, "Advance deducted from salary without telling us how much", 8),
+    fb("orion", "safety", 2, "Nobody fixes the broken ladder even after we told them", 9),
     fb("citycare", "manager", 4, "Ward sister listens to us", 2),
     fb("citycare", "conditions", 2, "Night shift then morning shift next day, very tired", 3),
     fb("citycare", "safety", 3, "Gloves run out often", 5),
