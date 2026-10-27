@@ -12,7 +12,7 @@ FairShift fixes both sides, for people who may not read well, speak one of many 
 - **Workers never have to type.** They hold one button and speak in any of **16 Indian languages**. Gemini understands them, answers from their own records (pay, shifts, rest), and Google Cloud Text-to-Speech reads the answer aloud.
 - **Hours can't quietly disappear.** Every completed shift is sealed into a **hash-chained receipt**. If an employer edits hours later, that becomes a new receipt the worker sees, with the reason, and any edit inside the chain breaks verification. Workers keep their receipt codes, so a wholesale rewrite would no longer match the codes they hold. Anyone can check a code.
 - **Fatigue is stopped before it starts.** The roster refuses a shift that breaks rest rules and suggests a **rested colleague with the same skills**.
-- **Moving off paper takes one photo.** The employer photographs the old handwritten register. Gemini reads every row, imports the shifts and flags **overtime the paper never counted**.
+- **Moving off paper takes one photo.** The employer photographs the old handwritten register. Gemini reads every row, the employer **reviews and confirms** who each row belongs to, and FairShift saves the shifts (all or nothing, each receipt naming the photo) and flags **overtime the paper never counted**.
 
 ## Problem statement coverage
 
@@ -26,7 +26,8 @@ FairShift fixes both sides, for people who may not read well, speak one of many 
 | Fatigue alerts | Long shifts, short rest, no day off, weekly overload, plus a **roster guard** that blocks unsafe shifts | `rules.ts` `fatigueFlags`, `restProblems` |
 | Admin dashboard: attendance, complaints, quit risk | Live KPIs, attendance chart, safety queue, **explainable quit-risk score** (reasons, not a black box), minimum-wage check | `web/Admin.tsx`, `rules.ts` `quitRisk` |
 | Multilingual voice for low-end phones | 16 languages (en, hi, bn, ta, te, kn, ml, mr, gu, pa, or, as, ur, ne, kok, mai), voice in and out, icons on every control, ~116 KB gzipped app | `server/speech.ts`, `web/i18n.ts`, `web/locales.json` |
-| **3+ working features** | 12 (above, plus paper-register import, inspection registers, live demo) | |
+| Inspection-ready registers | Attendance (muster roll), overtime and wage registers from sealed receipts: Excel-safe CSV, or a print-ready A4 page to save as PDF | `/admin/registers/:kind`, `?format=html` |
+| **3+ working features** | 12 (above, plus paper-register import with review, crew check-in, live demo) | |
 | **2 interfaces** | Worker phone app (`/#/worker`) and employer dashboard (`/#/admin`) | `web/Worker.tsx`, `web/Admin.tsx` |
 | **2+ industries** | Construction site, hospital and college campus: same engine, each with its own policy, roles and hazards; switch in the dashboard | `server/seed.ts` |
 
@@ -59,10 +60,10 @@ One Node 22 container on **Cloud Run** serves the web app and the JSON API. **Fi
 | Criterion | What we did |
 |---|---|
 | **Code quality** | TypeScript strict mode across server and web; pure rule functions separate from I/O (`rules.ts`, `ledger.ts`); small focused modules; comments explain *why* |
-| **Security** | No secrets in the repo (`.env` ignored, `.env.example` only); Google auth via service account; HMAC-signed expiring tokens checked in constant time; role checks on every route; per-IP rate limits on logins and AI; input validation and size caps; strict CSP, HSTS, `nosniff`, `no-referrer`; prompts treat user text as data; anonymous reports never store identity |
+| **Security** | No secrets in the repo; logins travel in an `X-Session` header (never the URL); a rejected correction changes nothing; GPS and every input range-checked (`.env` ignored, `.env.example` only); Google auth via service account; HMAC-signed expiring tokens checked in constant time; role checks on every route; per-IP rate limits on logins and AI; input validation and size caps; strict CSP, HSTS, `nosniff`, `no-referrer`; prompts treat user text as data; anonymous reports never store identity |
 | **Efficiency** | One container; in-memory reads with debounced, batched Firestore writes; photos downscaled on the phone before upload; fast model first, heavier models only where they matter; ~116 KB gzipped app, no UI framework bloat |
-| **Testing** | Vitest unit and API tests (`test/`): overtime, payslips, fatigue, rest rules, quit risk, receipt chain tampering, auth, anonymity, roster guard, registers. CI runs typecheck, tests and build on every push (`.github/workflows/ci.yml`) |
-| **Accessibility** | WCAG AA contrast, visible focus rings, skip links, labels on every control, `aria-live` updates, keyboard-operable talk button (Space/Enter), 44 px+ touch targets, reduced-motion support, right-to-left layout for Urdu, voice in and out for low literacy |
+| **Testing** | 88 Vitest unit and API tests (`test/`): overtime (incl. split shifts on one day), payslips, fatigue, rest rules (open shifts, 7-day streaks both ways), quit risk, receipt-chain tampering, atomic corrections, auth and roles, cross-organisation isolation, anonymity, register review (all-or-nothing writes), registers. CI runs typecheck, tests and build on every push (`.github/workflows/ci.yml`); `npm audit` reports 0 vulnerabilities |
+| **Accessibility** | WCAG AA contrast in light and dark themes (Light / Dark / Auto toggle), visible focus rings, skip links that focus the content without leaving the page, focus trapped inside dialogs, labels on every control, `aria-live` updates, keyboard-operable talk button (Space/Enter), 44 px+ touch targets, reduced-motion support, right-to-left layout for Urdu, pay, fatigue and error messages in the worker's own language, voice in and out for low literacy |
 | **Problem alignment** | Every example feature in the brief is built (table above), with two interfaces and three industries |
 
 ## Run it
@@ -94,4 +95,4 @@ The service account needs `roles/aiplatform.user` and `roles/datastore.user`.
 - **New sector:** a new organisation with its own policy (overtime threshold, rest hours), roles and site; no code changes. A factory or warehouse works the same way.
 - **Many sites:** the prototype keeps one state document on a single instance. At scale: per-organisation Firestore collections (shifts, receipts, hazards), transactions for concurrent writes, Pub/Sub for live events across Cloud Run instances, and the receipt chain's latest hash anchored daily outside the employer's control.
 - **Phones without data:** an SMS or IVR channel can use the same voice assistant endpoint.
-- **Payroll and compliance:** registers already export as CSV, and the receipt chain gives auditors tamper evidence.
+- **Payroll and compliance:** registers export as CSV and print-ready PDF, and the receipt chain gives auditors tamper evidence. Working days and weeks follow the site's local time (IST).
