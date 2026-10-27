@@ -3,7 +3,7 @@
 **Every hour gets a receipt. Every worker gets a voice.**
 A decent-work platform for employee-intensive workplaces (UN SDG 8), running on Google Cloud.
 
-**Live app:** _Cloud Run URL_ · **Live demo (worker phone + employer dashboard side by side):** `/#/demo`
+**Live app:** https://fairshift-85398896185.asia-south1.run.app · **Live demo (worker phone + employer dashboard side by side):** https://fairshift-85398896185.asia-south1.run.app/#/demo
 
 Construction sites, hospitals and college campuses still run their workforce on paper registers and WhatsApp groups. Workers can't see how their pay or overtime was worked out, fear naming themselves when they complain, and report hazards only after someone is hurt. Employers can't see who is overworked or about to quit until it's too late.
 
