@@ -1,5 +1,43 @@
 /** Small shared pieces: logo, avatar, modal, async-state helper. */
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { Monitor, Moon, Sun } from "lucide-react";
+
+type ThemeChoice = "system" | "light" | "dark";
+const THEME_KEY = "fairshift.theme";
+const media = () => window.matchMedia?.("(prefers-color-scheme: dark)");
+function applyTheme(choice: ThemeChoice) {
+  const dark = choice === "dark" || (choice === "system" && !!media()?.matches);
+  document.documentElement.dataset.mode = dark ? "dark" : "light";
+}
+/** Light, Dark or Auto (follows the phone or computer). Remembered on this device. */
+export function ThemeToggle({ labels = { system: "Auto", light: "Light", dark: "Dark" } }: { labels?: Record<ThemeChoice, string> }) {
+  const [choice, setChoice] = useState<ThemeChoice>(() => {
+    try {
+      return (localStorage.getItem(THEME_KEY) as ThemeChoice) || "system";
+    } catch {
+      return "system";
+    }
+  });
+  useEffect(() => {
+    applyTheme(choice);
+    try {
+      localStorage.setItem(THEME_KEY, choice);
+    } catch {
+      /* private mode: the choice lasts this visit */
+    }
+    const m = media();
+    const on = () => applyTheme(choice);
+    m?.addEventListener("change", on);
+    return () => m?.removeEventListener("change", on);
+  }, [choice]);
+  const next: Record<ThemeChoice, ThemeChoice> = { system: "light", light: "dark", dark: "system" };
+  const Icon = choice === "dark" ? Moon : choice === "light" ? Sun : Monitor;
+  return (
+    <button type="button" className="btn sm theme-toggle" onClick={() => setChoice(next[choice])} aria-label={`Theme: ${labels[choice]}. Change theme`} title={labels[choice]}>
+      <Icon size={16} aria-hidden="true" /> <span>{labels[choice]}</span>
+    </button>
+  );
+}
 
 export function Logo({ light }: { light?: boolean }) {
   return (

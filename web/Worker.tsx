@@ -5,20 +5,20 @@
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, BadgeCheck, Camera, Home, IndianRupee, LogOut, MapPin, MessageCircleHeart, Mic, QrCode, Receipt, ScanLine, Volume2 } from "lucide-react";
 import QRCode from "qrcode";
-import { api, fileToBase64, live } from "./api";
-import { LANG_LABEL, LANGS, RTL, t, type Key, type Lang } from "./i18n";
-import { Avatar, SkipLink, day, rupees, useLoad, when } from "./ui";
+import { api, ApiError, fileToBase64, live } from "./api";
+import { LANG_LABEL, LANGS, RTL, t, tf, type Key, type Lang } from "./i18n";
+import { Avatar, SkipLink, ThemeToggle, day, rupees, useLoad, when } from "./ui";
 import { canRecord, record, speak, stopSpeaking } from "./voice";
 
 interface ReceiptView { code: string; kind: string; start: string; end: string; hours: number; overtime: number; reason?: string; by: string }
 interface Me {
   worker: { id: string; name: string; job: string; lang: Lang; hourlyRate: number; joinedOn: string };
-  org: { name: string; sector: string; policy: { dailyHours: number; weeklyHours: number; overtimeRate: number } };
+  org: { name: string; sector: string; policy: { dailyHours: number; weeklyHours: number; overtimeRate: number; pfRate: number; esiRate: number } };
   site: { name: string };
   onShift: { start: string } | null;
   hours14d: { regular: number; overtime: number };
   daysWorked14d: number;
-  fatigue: { kind: string; detail: string; at: string }[];
+  fatigue: { kind: string; detail: string; at: string; value: number; limit: number }[];
   planned: { start: string; end: string }[];
   receipts: ReceiptView[];
   skills: { id: string; title: string; issuer: string; date: string; verified: boolean }[];
@@ -67,6 +67,7 @@ export function Worker({ onLogout }: { onLogout: () => void }) {
           <h1>{L("hello")}, {me.worker.name.split(" ")[0]}</h1>
           <span className="small muted">{me.worker.job} · {me.org.name}</span>
         </div>
+        <ThemeToggle labels={{ system: L("themeSystem"), light: L("themeLight"), dark: L("themeDark") }} />
         <label className="sr-only" htmlFor="lang">Language</label>
         <select id="lang" className="lang-select" value={lang} onChange={(e) => void changeLang(e.target.value as Lang)}>
           {LANGS.map((l) => <option key={l} value={l}>{LANG_LABEL[l]}</option>)}
@@ -74,7 +75,7 @@ export function Worker({ onLogout }: { onLogout: () => void }) {
       </header>
       <main className="phone-body" id="content" tabIndex={-1}>
         {tab === "home" && <HomeTab me={me} lang={lang} L={L} reload={reload} go={setTab} onDraft={setDraft} />}
-        {tab === "pay" && <PayTab lang={lang} L={L} />}
+        {tab === "pay" && <PayTab lang={lang} L={L} policy={me.org.policy} />}
         {tab === "danger" && <DangerTab me={me} lang={lang} L={L} reload={reload} draft={draft} clearDraft={() => setDraft("")} />}
         {tab === "voice" && <FeedbackTab lang={lang} L={L} />}
         {tab === "passport" && <PassportTab me={me} L={L} onLogout={onLogout} />}
@@ -190,7 +191,7 @@ function HomeTab({ me, lang, L, reload, go, onDraft }: Props & { me: Me; reload:
       await fn();
       await reload();
     } catch (e) {
-      setErr((e as Error).message);
+      setErr(errorText(e, lang));
     }
     setBusy(false);
   };
@@ -198,7 +199,7 @@ function HomeTab({ me, lang, L, reload, go, onDraft }: Props & { me: Me; reload:
   const gps = () =>
     navigator.geolocation.getCurrentPosition(
       (p) => void checkIn({ lat: p.coords.latitude, lng: p.coords.longitude }),
-      () => setErr("Location is off. Scan the QR code instead."),
+      () => setErr(L("errLocationOff")),
       { enableHighAccuracy: true, timeout: 8000 },
     );
   const checkOut = () => act(async () => setReceipt((await api<{ receipt: ReceiptView }>("/w/shift/check-out", { body: {} })).receipt));
@@ -255,7 +256,7 @@ function HomeTab({ me, lang, L, reload, go, onDraft }: Props & { me: Me; reload:
       {me.fatigue.length > 0 && (
         <div className="card pad" style={{ borderColor: "#f6dcae", background: "var(--gold-soft)" }} role="status">
           <strong>⚠ {L("tired")}</strong>
-          <p className="small" style={{ margin: "4px 0 0" }}>{me.fatigue.at(-1)!.detail}</p>
+          <p className="small" style={{ margin: "4px 0 0" }}>{fatigueText(me.fatigue.at(-1)!, lang)}</p>
         </div>
       )}
       {next && <div className="card pad row"><strong className="grow">{L("nextShift")}</strong><span>{when(next.start)}</span></div>}
@@ -321,7 +322,29 @@ function QrScanner({ onCode, onClose }: { onCode: (c: string) => void; onClose: 
 
 interface Slip { gross: number; net: number; deductions: number; shifts: number; lines: { key: string; label: string; hours?: number; rate?: number; amount: number; why: string }[] }
 
-function PayTab({ lang, L }: Props) {
+const FATIGUE_KEY: Record<string, Key> = { "long-shift": "fatLong", "short-rest": "fatRest", "no-day-off": "fatDays", "week-over-limit": "fatWeek" };
+const fatigueText = (f: { kind: string; detail: string; value: number; limit: number }, lang: Lang) =>
+  FATIGUE_KEY[f.kind] && f.value !== undefined ? tf(lang, FATIGUE_KEY[f.kind]!, { value: f.value, limit: f.limit }) : f.detail;
+
+/** Server errors carry a code so the worker sees them in their own language. */
+const ERROR_KEY: Record<string, Key> = { already_in: "errAlreadyIn", not_in: "errNotIn", wrong_code: "errWrongCode", too_far: "errTooFar", need_code: "errNeedCode", bad_location: "errBadLocation" };
+function errorText(e: unknown, lang: Lang) {
+  const body = e instanceof ApiError ? (e.body as { code?: string; meters?: number } | undefined) : undefined;
+  return body?.code && ERROR_KEY[body.code] ? tf(lang, ERROR_KEY[body.code]!, { m: body.meters ?? "" }) : (e as Error).message;
+}
+
+type Policy = Me["org"]["policy"];
+/** Each payslip line, said in the worker's language from the same numbers the server used. */
+function payLine(l: Slip["lines"][number], lang: Lang, p: Policy): { label: string; why: string } {
+  const n = (v: number | undefined) => (v ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 2 });
+  if (l.key === "regular") return { label: t(lang, "payRegular"), why: tf(lang, "payRegularWhy", { hours: n(l.hours), rate: n(l.rate) }) };
+  if (l.key === "overtime") return { label: t(lang, "payOvertime"), why: tf(lang, "payOvertimeWhy", { hours: n(l.hours), rate: n(l.rate), x: p.overtimeRate, daily: p.dailyHours, weekly: p.weeklyHours }) };
+  if (l.key === "pf") return { label: t(lang, "payPf"), why: tf(lang, "payPfWhy", { pct: n(p.pfRate * 100) }) };
+  if (l.key === "esi") return { label: t(lang, "payEsi"), why: tf(lang, "payEsiWhy", { pct: n(p.esiRate * 100) }) };
+  return { label: l.label, why: l.why };
+}
+
+function PayTab({ lang, L, policy }: Props & { policy: Policy }) {
   const [period, setPeriod] = useState<"month" | "week">("month");
   const { data: slip } = useLoad(() => api<Slip>(`/w/payslip?period=${period}`), [period]);
   const [explain, setExplain] = useState<string>("");
@@ -354,9 +377,9 @@ function PayTab({ lang, L }: Props) {
             <div className="line" key={l.key}>
               <span className="dot" style={{ background: colors[l.key] }} aria-hidden="true" />
               <span>
-                <strong>{l.label}</strong>
+                <strong>{payLine(l, lang, policy).label}</strong>
                 <br />
-                <span className="small muted">{l.why}</span>
+                <span className="small muted">{payLine(l, lang, policy).why}</span>
               </span>
               <strong style={{ color: l.amount < 0 ? "var(--ink-2)" : "var(--ink)" }}>{l.amount < 0 ? "−" : ""}{rupees(Math.abs(l.amount))}</strong>
             </div>

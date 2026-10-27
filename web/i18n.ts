@@ -74,6 +74,28 @@ const en = {
   share: "Show this QR to any employer",
   hours: "hours",
   shifts: "shifts",
+  payRegular: "Regular hours",
+  payRegularWhy: "{hours} hours at ₹{rate} an hour.",
+  payOvertime: "Overtime",
+  payOvertimeWhy: "{hours} extra hours at {x}× pay, ₹{rate} an hour. Overtime counts after {daily} hours in a day or {weekly} in a week.",
+  payPf: "Provident Fund (your savings)",
+  payPfWhy: "{pct}% of regular pay is saved in your PF account. It is still your money.",
+  payEsi: "ESI (health insurance)",
+  payEsiWhy: "{pct}% of pay covers free treatment at ESI hospitals for you and your family.",
+  fatLong: "{value} hour shift (limit {limit})",
+  fatRest: "Only {value} hours of rest between shifts (need {limit})",
+  fatDays: "{value} days in a row without a day off",
+  fatWeek: "{value} hours this week (limit {limit})",
+  errAlreadyIn: "You are already at work.",
+  errNotIn: "You have not started work.",
+  errWrongCode: "This QR code is not for your site.",
+  errTooFar: "You are {m} metres away. Start work at the site.",
+  errNeedCode: "Scan the site QR code or use your location.",
+  errBadLocation: "Location not valid. Turn on GPS and try again.",
+  errLocationOff: "Location is off. Scan the QR code instead.",
+  themeSystem: "Auto",
+  themeLight: "Light",
+  themeDark: "Dark",
 };
 type Dict = typeof en;
 
@@ -128,3 +150,5 @@ const DICTS: Partial<Record<Lang, Partial<Dict>>> = { ...(generated as Partial<R
 export type Key = keyof Dict;
 export const EN = en;
 export const t = (lang: Lang, key: Key) => DICTS[lang]?.[key] ?? en[key];
+/** Fills {placeholders} in a translated sentence. */
+export const tf = (lang: Lang, key: Key, vars: Record<string, string | number>) => t(lang, key).replace(/\{(\w+)\}/g, (_, k: string) => String(vars[k] ?? ""));

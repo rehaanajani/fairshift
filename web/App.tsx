@@ -4,7 +4,7 @@ import { BadgeCheck, Building2, HardHat, Languages, Mic, MonitorPlay, Receipt, S
 import { Admin } from "./Admin";
 import { api, session } from "./api";
 import { LANG_LABEL, type Lang } from "./i18n";
-import { Avatar, Logo, SECTOR_LABEL, day, useLoad } from "./ui";
+import { Avatar, Logo, SECTOR_LABEL, ThemeToggle, day, useLoad } from "./ui";
 import { Worker } from "./Worker";
 
 function useRoute() {
@@ -39,6 +39,7 @@ function Landing() {
       <header className="row">
         <Logo />
         <span className="grow" />
+        <ThemeToggle />
         <a className="btn sm" href="#/demo">
           <MonitorPlay size={16} aria-hidden="true" /> Live demo
         </a>

@@ -228,3 +228,39 @@ a.mono:hover { text-decoration: underline; }
 .demo-tabs button[aria-selected="true"] { background: var(--ink); color: #fff; }
 [dir="rtl"] .lang-select { padding: 6px 16px 6px 40px; background-position: left 16px center !important; }
 main:focus { outline: none; }
+
+/* ---------- dark mode (data-mode is set from the Light / Dark / Auto toggle) ---------- */
+:root[data-mode="dark"] {
+  color-scheme: dark;
+  --ink: #ecebf3; --ink-2: #c9c8d6; --muted: #9e9daf; --line: #2e2d38;
+  --bg: #121218; --card: #1c1c24; --card-2: #26252f;
+  --brand: #ecebf3; --brand-ink: #121218; --brand-soft: #2b2645;
+  --lime: #ecebf3; --lime-ink: #121218;
+  --lilac: #b7a4f4; --lilac-soft: #2d2747; --beige: #3a3528;
+  --gold: #f2a865; --gold-soft: #3b2a19; --red: #ff8a7a; --red-soft: #3e201d;
+  --blue: #a9adff; --blue-soft: #24254a; --ok: #86d496;
+  --shadow: 0 1px 0 rgb(255 255 255 / 4%) inset, 0 10px 30px rgb(0 0 0 / 40%);
+}
+[data-mode="dark"] .btn:hover { background: var(--card-2); }
+[data-mode="dark"] .btn.primary:hover { background: #d6d5e2; }
+[data-mode="dark"] .card { border-color: rgb(255 255 255 / 6%); }
+[data-mode="dark"] .input, [data-mode="dark"] .select, [data-mode="dark"] textarea.input { background: var(--card-2); border-color: #3a3946; color: var(--ink); }
+[data-mode="dark"] .person, [data-mode="dark"] .bubble, [data-mode="dark"] .face, [data-mode="dark"] .topic, [data-mode="dark"] .receipt, [data-mode="dark"] .side .select { background: var(--card); color: var(--ink); }
+[data-mode="dark"] .bubble.me { background: var(--card-2); }
+[data-mode="dark"] .bubble.ai { background: var(--lilac-soft); }
+[data-mode="dark"] .phone { background: linear-gradient(180deg, #1b1930 0%, #141418 50%, #1a1712 100%); }
+[data-mode="dark"] .shift-card { background: #2a2638; }
+[data-mode="dark"] .shift-card .btn.light { background: #ecebf3; color: #121218; }
+[data-mode="dark"] .mic { border-color: var(--card); }
+[data-mode="dark"] .tabbar { background: rgb(30 29 38 / 90%); }
+[data-mode="dark"] .tabbar button { background: rgb(255 255 255 / 5%); }
+[data-mode="dark"] .tabbar button[aria-current="page"] { background: var(--ink); color: var(--bg); }
+[data-mode="dark"] .note { color: #ddd6ff; }
+[data-mode="dark"] .drop { background: var(--card-2); border-color: #44434f; }
+[data-mode="dark"] .demo { background: linear-gradient(180deg, #1c1f2a, #0f1117); }
+[data-mode="dark"] .demo-screen { background: var(--bg); }
+[data-mode="dark"] .lang-select { background-image: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%278%27 viewBox=%270 0 12 8%27%3E%3Cpath d=%27M1 1.5l5 5 5-5%27 fill=%27none%27 stroke=%27%23ecebf3%27 stroke-width=%272%27 stroke-linecap=%27round%27/%3E%3C/svg%3E") !important; }
+[data-mode="dark"] .logo img, [data-mode="dark"] .passport .qr { background: #f4f3f1; border-radius: 50%; }
+[data-mode="dark"] .passport .qr { border-radius: 18px; }
+.theme-toggle { gap: 6px; }
+@media (max-width: 420px) { .phone-top .theme-toggle span { display: none; } }

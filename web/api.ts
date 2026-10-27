@@ -62,6 +62,21 @@ export async function download(path: string, filename: string, role: Role = "adm
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+/** Opens a print-ready register (A4, headers on every page) in a new tab; the browser's print dialog saves it as PDF. */
+export async function printRegister(path: string, role: Role = "admin") {
+  const win = window.open("", "_blank");
+  const res = await fetch(`/api${path}`, { headers: { "x-session": session.get(role) ?? "" } });
+  if (!res.ok) {
+    win?.close();
+    throw new ApiError(res.status === 401 ? "Your session expired. Sign in again to print." : "Couldn't prepare the register.", res.status);
+  }
+  const url = URL.createObjectURL(new Blob([await res.text()], { type: "text/html" }));
+  if (!win) return void (window.location.href = url);
+  win.location.href = url;
+  // the page's own print script is blocked by the app's CSP, so open the print dialog from here
+  setTimeout(() => win.print(), 800);
+}
+
 /** Live updates (Server-Sent Events read over fetch, so the token stays in a header). Returns a stop function. */
 export function live<T>(path: string, role: Role, onEvent: (e: T) => void): () => void {
   let stopped = false;

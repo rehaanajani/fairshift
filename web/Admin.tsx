@@ -3,9 +3,9 @@
  * paper-register import, crew check-in and inspection-ready registers. Updates the moment a worker acts.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertTriangle, BadgeCheck, CalendarClock, Camera, ClipboardList, Download, FileSpreadsheet, LayoutDashboard, LogOut, QrCode, Receipt, RefreshCw, ShieldAlert, MessagesSquare, Users } from "lucide-react";
-import { api, ApiError, download, fileToBase64, live } from "./api";
-import { Avatar, Modal, SECTOR_LABEL, SkipLink, day, rupees, useLoad, when } from "./ui";
+import { AlertTriangle, BadgeCheck, Printer, CalendarClock, Camera, ClipboardList, Download, FileSpreadsheet, LayoutDashboard, LogOut, QrCode, Receipt, RefreshCw, ShieldAlert, MessagesSquare, Users } from "lucide-react";
+import { api, ApiError, download, fileToBase64, live, printRegister } from "./api";
+import { Avatar, Modal, SECTOR_LABEL, SkipLink, ThemeToggle, day, rupees, useLoad, when } from "./ui";
 
 interface Person {
   id: string; name: string; job: string; lang: string; hourlyRate: number; onShift: boolean; onShiftHours: number; daysWorked: number;
@@ -82,6 +82,7 @@ export function Admin({ orgs, onSwitch, onLogout }: { orgs: { id: string; name: 
         </nav>
         <span className="grow" />
         <span className="small row" style={{ gap: 8 }}><span className="live-dot" aria-hidden="true" /> Live</span>
+        <ThemeToggle />
         <button type="button" className="btn sm" onClick={onLogout}><LogOut size={16} aria-hidden="true" /> Sign out</button>
       </aside>
 
@@ -195,9 +196,14 @@ export function Admin({ orgs, onSwitch, onLogout }: { orgs: { id: string; name: 
             <div className="pad col">
               <p className="small muted" style={{ margin: 0 }}>Generated from sealed shift receipts: the attendance (muster roll), overtime and wage registers a labour inspector asks for. Last 30 days.</p>
               {[["attendance", "Attendance register"], ["overtime", "Overtime register"], ["wages", "Wage register"]].map(([k, label]) => (
-                <button key={k} type="button" className="btn" style={{ justifyContent: "flex-start" }} onClick={() => void download(`/admin/registers/${k}`, `${o.org.id}-${k}-register.csv`).catch((e) => toast((e as Error).message, true))}>
-                  <Download size={18} aria-hidden="true" /> {label} <span className="grow" /> <span className="tiny muted">CSV</span>
-                </button>
+                <div key={k} className="row">
+                  <button type="button" className="btn grow" style={{ justifyContent: "flex-start" }} onClick={() => void download(`/admin/registers/${k}`, `${o.org.id}-${k}-register.csv`).catch((e) => toast((e as Error).message, true))}>
+                    <Download size={18} aria-hidden="true" /> {label} <span className="grow" /> <span className="tiny muted">CSV</span>
+                  </button>
+                  <button type="button" className="btn" aria-label={`Print or save ${label} as PDF`} onClick={() => void printRegister(`/admin/registers/${k}?format=html`).catch((e) => toast((e as Error).message, true))}>
+                    <Printer size={18} aria-hidden="true" /> PDF
+                  </button>
+                </div>
               ))}
             </div>
           </section>
@@ -340,39 +346,102 @@ function SkillModal({ person, onClose, onDone }: { person: Person; onClose: () =
   );
 }
 
+interface ReadRow { i: number; name: string; date: string; in: string; out: string; note?: string; problems: string[]; hours: number | null; match: { workerId: string | null; confidence: "exact" | "likely" | "ambiguous" | "new"; candidates: { id: string; name: string }[] } }
+interface Findings { imported: number; added: string[]; findings: { name: string; shifts: number; hours: number; overtime: number; overtimePay: number; fatigue: string[] }[] }
+
+/** Paper register import: Gemini reads the photo, the employer checks every row and who it belongs to, then confirms. */
 function RegisterModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
   const [preview, setPreview] = useState("");
   const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState<{ rowsRead: number; imported: number; added: string[]; findings: { name: string; shifts: number; hours: number; overtime: number; overtimePay: number; fatigue: string[] }[] } | null>(null);
+  const [read, setRead] = useState<{ photoHash: string; staff: { id: string; name: string; job: string }[]; rows: ReadRow[] } | null>(null);
+  const [choice, setChoice] = useState<Record<number, string>>({});
+  const [skip, setSkip] = useState<Set<number>>(new Set());
+  const [rowErrors, setRowErrors] = useState<Record<number, string[]>>({});
+  const [result, setResult] = useState<Findings | null>(null);
   const [err, setErr] = useState("");
   const input = useRef<HTMLInputElement>(null);
   const pick = async (f: File) => {
     setPreview(URL.createObjectURL(f));
     setBusy(true);
     setErr("");
+    setResult(null);
     try {
       const img = await fileToBase64(f, 2000);
-      setResult(await api("/admin/register/import", { body: { photo: img.data, photoType: img.type } }));
+      const r = await api<NonNullable<typeof read>>("/admin/register/read", { body: { photo: img.data, photoType: img.type } });
+      setRead(r);
+      setChoice(Object.fromEntries(r.rows.map((x) => [x.i, x.match.workerId ?? (x.match.confidence === "new" ? "new" : "")])));
+      setSkip(new Set(r.rows.filter((x) => x.problems.length).map((x) => x.i)));
+    } catch (e) {
+      setErr((e as Error).message);
+    }
+    setBusy(false);
+  };
+  const rows = read?.rows.filter((r) => !skip.has(r.i)) ?? [];
+  const ready = rows.length > 0 && rows.every((r) => choice[r.i]);
+  const confirm = async () => {
+    if (!read) return;
+    setBusy(true);
+    setErr("");
+    setRowErrors({});
+    try {
+      const body = { photoHash: read.photoHash, rows: rows.map((r) => ({ name: r.name, date: r.date, in: r.in, out: r.out, workerId: choice[r.i] })) };
+      setResult(await api<Findings>("/admin/register/confirm", { body }));
+      setRead(null);
       onDone();
     } catch (e) {
+      const b = e instanceof ApiError ? (e.body as { errors?: { i: number; problems: string[] }[] }) : undefined;
+      if (b?.errors) setRowErrors(Object.fromEntries(b.errors.map((x) => [rows[x.i]!.i, x.problems])));
       setErr((e as Error).message);
     }
     setBusy(false);
   };
   return (
     <Modal title="Import a paper register" onClose={onClose}>
-      <div className="drop">
-        <Camera size={30} color="var(--brand)" aria-hidden="true" />
-        <strong>Photograph a page of your attendance book</strong>
-        <span className="small muted">Handwritten is fine, in any language. Gemini reads every row, adds the shifts with sealed receipts, and shows overtime the paper never counted.</span>
-        <input ref={input} type="file" accept="image/*" capture="environment" hidden onChange={(e) => e.target.files?.[0] && void pick(e.target.files[0])} />
-        <button type="button" className="btn primary" disabled={busy} onClick={() => input.current?.click()}>{busy ? <><span className="spin" /> Reading the register…</> : "Choose or take a photo"}</button>
-      </div>
-      {preview && <img src={preview} alt="The register page you chose" className="photo-preview" />}
+      {!read && !result && (
+        <div className="drop">
+          <Camera size={30} color="var(--ink)" aria-hidden="true" />
+          <strong>Photograph a page of your attendance book</strong>
+          <span className="small muted">Handwritten is fine, in any language. Gemini reads every row; you check who each row belongs to before anything is saved.</span>
+          <input ref={input} type="file" accept="image/*" capture="environment" hidden onChange={(e) => e.target.files?.[0] && void pick(e.target.files[0])} />
+          <button type="button" className="btn primary" disabled={busy} onClick={() => input.current?.click()}>{busy ? <><span className="spin" /> Reading the register…</> : "Choose or take a photo"}</button>
+        </div>
+      )}
+      {preview && !result && <img src={preview} alt="The register page you chose" className="photo-preview" />}
+      {read && (
+        <div className="col">
+          <p className="note" style={{ margin: 0 }}>Gemini read {read.rows.length} rows. Check each one; rows with problems are left out until you fix them on paper and re-scan.</p>
+          <div className="table-wrap">
+            <table className="table">
+              <thead><tr><th scope="col">Use</th><th scope="col">Written name</th><th scope="col">Date · in → out</th><th scope="col">Who is this?</th></tr></thead>
+              <tbody>
+                {read.rows.map((r) => (
+                  <tr key={r.i}>
+                    <td><input type="checkbox" aria-label={`Import row ${r.i + 1}`} disabled={r.problems.length > 0} checked={!skip.has(r.i)} onChange={(e) => setSkip((s) => { const n = new Set(s); e.target.checked ? n.delete(r.i) : n.add(r.i); return n; })} style={{ width: 20, height: 20 }} /></td>
+                    <td><strong>{r.name}</strong>{r.note && <><br /><span className="tiny muted">{r.note}</span></>}</td>
+                    <td>{r.date} · {r.in} → {r.out}{r.hours !== null && <span className="muted"> ({r.hours} h)</span>}
+                      {[...r.problems, ...(rowErrors[r.i] ?? [])].map((p) => <div key={p} className="tiny" style={{ color: "var(--red)", fontWeight: 600 }}>⚠ {p}</div>)}</td>
+                    <td>
+                      <label className="sr-only" htmlFor={`who-${r.i}`}>Worker for row {r.i + 1}</label>
+                      <select id={`who-${r.i}`} className="select" style={{ minHeight: 40, padding: "6px 12px" }} value={choice[r.i] ?? ""} disabled={skip.has(r.i)} onChange={(e) => setChoice((c) => ({ ...c, [r.i]: e.target.value }))}>
+                        <option value="">Choose…</option>
+                        {read.staff.map((p) => <option key={p.id} value={p.id}>{p.name} · {p.job}{r.match.candidates.some((c) => c.id === p.id) ? " (match)" : ""}</option>)}
+                        <option value="new">Add “{r.name}” as a new worker</option>
+                      </select>
+                      {r.match.confidence === "ambiguous" && <div className="tiny" style={{ color: "var(--gold)", fontWeight: 600 }}>Several people share this first name: pick one</div>}
+                      {r.match.confidence === "likely" && <div className="tiny muted">Matched by first name: please confirm</div>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <button type="button" className="btn primary lg" disabled={!ready || busy} onClick={() => void confirm()}>{busy ? <span className="spin" /> : null} Save {rows.length} shifts with receipts</button>
+        </div>
+      )}
       {err && <p className="error" role="alert">{err}</p>}
       {result && (
         <div className="col" aria-live="polite">
-          <p className="note" style={{ margin: 0 }}>Read {result.rowsRead} rows · imported {result.imported} shifts{result.added.length > 0 && ` · added ${result.added.length} new workers`}</p>
+          <p className="note" style={{ margin: 0 }}>Imported {result.imported} shifts{result.added.length > 0 && ` · added ${result.added.length} new workers`}. Each receipt records which photo it came from.</p>
           {result.findings.map((f) => (
             <div key={f.name} className="card pad col" style={{ gap: 4 }}>
               <div className="row"><strong className="grow">{f.name}</strong><span>{f.shifts} shifts · {f.hours} h</span></div>
