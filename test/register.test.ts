@@ -11,7 +11,8 @@ let server: Server;
 let base = "";
 let token = "";
 const hash = "a".repeat(64);
-const post = (path: string, body: unknown) => fetch(`${base}${path}`, { method: "POST", headers: { "content-type": "application/json", "x-session": token }, body: JSON.stringify(body) });
+const post = (path: string, body: unknown) =>
+  fetch(`${base}${path}`, { method: "POST", headers: { "content-type": "application/json", "x-session": token }, body: JSON.stringify(body) });
 
 beforeAll(async () => {
   server = createApp(data, { now: () => fixed }).listen(0);
@@ -36,7 +37,10 @@ describe("paper register confirm step", () => {
   });
 
   it("requires a chosen worker and refuses another organisation's worker", async () => {
-    const res = await post("/api/admin/register/confirm", { photoHash: hash, rows: [{ name: "Anita Das", workerId: "w6", date: "2026-10-20", in: "08:00", out: "16:00" }] });
+    const res = await post("/api/admin/register/confirm", {
+      photoHash: hash,
+      rows: [{ name: "Anita Das", workerId: "w6", date: "2026-10-20", in: "08:00", out: "16:00" }],
+    });
     expect(res.status).toBe(422);
   });
 

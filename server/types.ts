@@ -3,8 +3,22 @@ export type Sector = "construction" | "hospital" | "college" | "factory";
 export const LANGS = ["en", "hi", "bn", "ta", "te", "kn", "ml", "mr", "gu", "pa", "or", "as", "ur", "ne", "kok", "mai"] as const;
 export type Lang = (typeof LANGS)[number];
 export const LANG_NAME: Record<Lang, string> = {
-  en: "English", hi: "Hindi", bn: "Bengali", ta: "Tamil", te: "Telugu", kn: "Kannada", ml: "Malayalam", mr: "Marathi",
-  gu: "Gujarati", pa: "Punjabi", or: "Odia", as: "Assamese", ur: "Urdu", ne: "Nepali", kok: "Konkani", mai: "Maithili",
+  en: "English",
+  hi: "Hindi",
+  bn: "Bengali",
+  ta: "Tamil",
+  te: "Telugu",
+  kn: "Kannada",
+  ml: "Malayalam",
+  mr: "Marathi",
+  gu: "Gujarati",
+  pa: "Punjabi",
+  or: "Odia",
+  as: "Assamese",
+  ur: "Urdu",
+  ne: "Nepali",
+  kok: "Konkani",
+  mai: "Maithili",
 };
 
 /** Working-hour rules an employer follows. Defaults mirror India's Factories Act / OSH Code limits. */

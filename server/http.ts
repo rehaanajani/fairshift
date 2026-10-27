@@ -15,7 +15,8 @@ export const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) 
 export const lang = (v: unknown): Lang | undefined => (LANGS.includes(v as Lang) ? (v as Lang) : undefined);
 export const round2 = (n: number) => Math.round(n * 100) / 100;
 /** base64 payload with a size cap (bytes after decoding) */
-export const b64 = (v: unknown, maxBytes: number) => (typeof v === "string" && v.length > 0 && v.length <= (maxBytes * 4) / 3 + 4 && /^[A-Za-z0-9+/=]+$/.test(v) ? v : undefined);
+export const b64 = (v: unknown, maxBytes: number) =>
+  typeof v === "string" && v.length > 0 && v.length <= (maxBytes * 4) / 3 + 4 && /^[A-Za-z0-9+/=]+$/.test(v) ? v : undefined;
 
 /** Small fixed-window limiter per IP, enough to stop PIN guessing and AI abuse. */
 export function limit(perMinute: number) {
@@ -44,4 +45,3 @@ export function stream(store: Store, req: Request, res: Response, keep: (c: Chan
     store.events.off("change", on);
   });
 }
-

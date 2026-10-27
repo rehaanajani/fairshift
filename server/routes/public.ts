@@ -11,15 +11,24 @@ import { LANG_NAME, LANGS } from "../types.ts";
 
 export function publicRoutes(app: express.Express, ctx: Context) {
   const { data, worker, org, shiftsOf, receiptView } = ctx;
-  app.get("/api/health", (_req, res) => void res.json({ ok: true, speech: speechStatus(), receipts: data.receipts.length, chainIntact: firstBroken(data.receipts) === -1 }));
+  app.get(
+    "/api/health",
+    (_req, res) => void res.json({ ok: true, speech: speechStatus(), receipts: data.receipts.length, chainIntact: firstBroken(data.receipts) === -1 }),
+  );
 
-  app.get("/api/orgs", (_req, res) =>
-    void res.json({
-      orgs: data.orgs.map((o) => ({ id: o.id, name: o.name, sector: o.sector })),
-      languages: LANGS.map((code) => ({ code, name: LANG_NAME[code] })),
-      // a prototype for judges: the demo logins are shown on the login screen
-      demo: { workers: data.workers.map((w) => ({ name: w.name, phone: w.phone, org: org(w.orgId).name, orgId: w.orgId, job: w.job, lang: w.lang })), workerPin: DEMO.workerPin, adminPin: DEMO.adminPin },
-    }),
+  app.get(
+    "/api/orgs",
+    (_req, res) =>
+      void res.json({
+        orgs: data.orgs.map((o) => ({ id: o.id, name: o.name, sector: o.sector })),
+        languages: LANGS.map((code) => ({ code, name: LANG_NAME[code] })),
+        // a prototype for judges: the demo logins are shown on the login screen
+        demo: {
+          workers: data.workers.map((w) => ({ name: w.name, phone: w.phone, org: org(w.orgId).name, orgId: w.orgId, job: w.job, lang: w.lang })),
+          workerPin: DEMO.workerPin,
+          adminPin: DEMO.adminPin,
+        },
+      }),
   );
 
   app.post("/api/login/worker", limit(15), (req, res) => {
@@ -43,7 +52,11 @@ export function publicRoutes(app: express.Express, ctx: Context) {
     const broken = firstBroken(data.receipts);
     // a correction is any later link in the chain for the same shift (chain order, not clock time)
     const corrected = data.receipts.some((x, j) => j > i && x.kind === "correction" && x.shiftId === r.shiftId);
-    res.json({ valid: broken === -1 || broken > i, corrected, receipt: { ...receiptView(r), employer: org(r.orgId).name, worker: worker(r.workerId).name.split(" ")[0] } });
+    res.json({
+      valid: broken === -1 || broken > i,
+      corrected,
+      receipt: { ...receiptView(r), employer: org(r.orgId).name, worker: worker(r.workerId).name.split(" ")[0] },
+    });
   });
 
   /** A worker's portable skill passport: verified skills and work record, shareable with any future employer. */

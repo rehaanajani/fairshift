@@ -28,7 +28,7 @@ beforeEach(async () => {
 afterEach(async () => {
   try {
     if (server?.listening) {
-      await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+      await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
     }
   } finally {
     vi.unstubAllEnvs();
@@ -118,8 +118,12 @@ describe("attendance", () => {
     const checkedOut = await request("/api/w/shift/check-out", { token, method: "POST" });
     expect(checkedOut.status).toBe(200);
     const completed = await checkedOut.json();
-    expect(completed).toMatchObject({ shift: { id: shift.id, end: fixed.toISOString() }, hours: 0, overtime: 0,
-      receipt: { kind: "shift", by: "worker", hours: 0, at: fixed.toISOString() } });
+    expect(completed).toMatchObject({
+      shift: { id: shift.id, end: fixed.toISOString() },
+      hours: 0,
+      overtime: 0,
+      receipt: { kind: "shift", by: "worker", hours: 0, at: fixed.toISOString() },
+    });
     expect(completed.receipt.code).toMatch(/^FS-[0-9A-F]{4}-[0-9A-F]{4}$/);
     const verified = await request(`/api/receipts/${completed.receipt.code}`);
     expect(verified.status).toBe(200);
@@ -164,8 +168,12 @@ describe("receipts and corrections", () => {
     const admin = await adminLogin();
     const reason = "Missed the first hour on the attendance record";
     const correction = await request(`/api/admin/shifts/${original.shift.id}`, {
-      token: admin, method: "PATCH", body: {
-        start: new Date(fixed.getTime() - 3_600_000).toISOString(), end: original.shift.end, reason,
+      token: admin,
+      method: "PATCH",
+      body: {
+        start: new Date(fixed.getTime() - 3_600_000).toISOString(),
+        end: original.shift.end,
+        reason,
       },
     });
     expect(correction.status).toBe(200);
@@ -208,14 +216,18 @@ describe("roster rest guard", () => {
     expect(response.status).toBe(409);
     const result = await response.json();
     // an open shift has no known end, so it blocks planning outright; a closed one is judged by rest hours
-    expect(result.problems).toEqual(end ? [`only ${rest} hours of rest next to another shift (needs 10)`] : expect.arrayContaining(["still on a shift that hasn't been closed"]));
+    expect(result.problems).toEqual(
+      end ? [`only ${rest} hours of rest next to another shift (needs 10)`] : expect.arrayContaining(["still on a shift that hasn't been closed"]),
+    );
     expect(result.alternatives).toEqual(expect.arrayContaining([expect.objectContaining({ id: "w4", name: "Raju Naidu" })]));
     const alternatives = result.alternatives as { id: string }[];
     expect(alternatives.length).toBeGreaterThan(0);
     expect(alternatives.every((p) => p.id !== "w1" && data.workers.some((w) => w.id === p.id && w.orgId === "orion"))).toBe(true);
     expect(data.planned).toEqual([]);
     const replacement = await request("/api/admin/roster", {
-      token, method: "POST", body: { ...proposed, workerId: "w4" },
+      token,
+      method: "POST",
+      body: { ...proposed, workerId: "w4" },
     });
     expect(replacement.status).toBe(201);
     expect(await replacement.json()).toMatchObject({ planned: { workerId: "w4" } });
@@ -310,8 +322,9 @@ describe("public skill passport", () => {
     expect(response.status).toBe(200);
     const publicProfile = await response.json();
     expect(publicProfile).toMatchObject({ name: "Murugan S", job: "Mason", employer: "Orion Builders" });
-    expect(publicProfile.skills).toEqual(data.skills.filter((k) => k.workerId === "w1")
-      .map(({ title, issuer, date, verified }) => ({ title, issuer, date, verified })));
+    expect(publicProfile.skills).toEqual(
+      data.skills.filter((k) => k.workerId === "w1").map(({ title, issuer, date, verified }) => ({ title, issuer, date, verified })),
+    );
     expect(publicProfile.skills.length).toBeGreaterThan(0);
     expect(JSON.stringify(publicProfile)).not.toMatch(/"(?:phone|pin)"\s*:/i);
     expect(JSON.stringify(publicProfile)).not.toContain("9000000001");
@@ -331,9 +344,15 @@ describe("anonymous hazard tracking", () => {
     expect(await response.json()).toMatchObject({ status: "open", category: hazard.category, updates: [], createdAt: fixed.toISOString() });
 
     const admin = await adminLogin();
-    expect((await request(`/api/admin/hazards/${hazard.id}`, {
-      token: admin, method: "PATCH", body: { status: "acknowledged", note: "Electrician called" },
-    })).status).toBe(200);
+    expect(
+      (
+        await request(`/api/admin/hazards/${hazard.id}`, {
+          token: admin,
+          method: "PATCH",
+          body: { status: "acknowledged", note: "Electrician called" },
+        })
+      ).status,
+    ).toBe(200);
     // Another worker in Orion can use the code; the original identity is unnecessary.
     const colleague = await request("/api/login/worker", { method: "POST", body: { phone: "9000000004", pin: "1234" } });
     expect(colleague.status).toBe(200);
@@ -352,8 +371,12 @@ describe("worker voice fallback", () => {
     const text = "என் சம்பளம் எவ்வளவு?";
     const response = await request("/api/w/voice", { token, method: "POST", body: { text, lang: "ta" } });
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ heard: text, lang: "ta", speech: null,
-      reply: { intent: "pay", source: "rules", action: "none", answer: expect.any(String) } });
+    expect(await response.json()).toMatchObject({
+      heard: text,
+      lang: "ta",
+      speech: null,
+      reply: { intent: "pay", source: "rules", action: "none", answer: expect.any(String) },
+    });
   });
 });
 
@@ -379,7 +402,9 @@ describe("hazards and anonymity", () => {
   it("shows an anonymous hazard as Anonymous without exposing a reporter ID", async () => {
     const token = await workerLogin();
     const response = await request("/api/w/hazards", {
-      token, method: "POST", body: { text: "Exposed electrical wire near the gate", lang: "en", anonymous: true },
+      token,
+      method: "POST",
+      body: { text: "Exposed electrical wire near the gate", lang: "en", anonymous: true },
     });
     expect(response.status).toBe(201);
     const report = await response.json();
@@ -416,12 +441,14 @@ describe("hazards and anonymity", () => {
 describe("feedback anonymity threshold", () => {
   it("hides averages for every topic with fewer than three entries, including zero", async () => {
     const token = await adminLogin();
-    expect((await overview(token)).feedback).toEqual(expect.arrayContaining([
-      { topic: "manager", count: 1, avg: null },
-      { topic: "conditions", count: 2, avg: null },
-      { topic: "safety", count: 2, avg: null },
-      { topic: "pay", count: 3, avg: 1.7 },
-    ]));
+    expect((await overview(token)).feedback).toEqual(
+      expect.arrayContaining([
+        { topic: "manager", count: 1, avg: null },
+        { topic: "conditions", count: 2, avg: null },
+        { topic: "safety", count: 2, avg: null },
+        { topic: "pay", count: 3, avg: 1.7 },
+      ]),
+    );
     const hospital = await adminLogin("citycare");
     const feedback = (await overview(hospital)).feedback;
     expect(feedback.find((f) => f.topic === "pay")).toEqual({ topic: "pay", count: 0, avg: null });
@@ -439,7 +466,9 @@ describe("feedback anonymity threshold", () => {
       expect(stored).not.toHaveProperty("workerId");
       expect(stored).not.toHaveProperty("createdAt");
       expect((await overview(admin)).feedback.find((f) => f.topic === "manager")).toEqual({
-        topic: "manager", count: rating === 4 ? 2 : 3, avg: rating === 4 ? null : 4,
+        topic: "manager",
+        count: rating === 4 ? 2 : 3,
+        avg: rating === 4 ? null : 4,
       });
     }
   });

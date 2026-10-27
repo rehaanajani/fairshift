@@ -12,15 +12,34 @@ export function makeContext(store: Store, now: () => Date) {
   const siteOf = (orgId: string) => data.sites.find((s) => s.orgId === orgId)!;
   const shiftsOf = (workerId: string) => data.shifts.filter((s) => s.workerId === workerId);
   const since = (days: number) => new Date(now().getTime() - days * DAY).toISOString();
-  const receiptView = (r: Receipt) => ({ code: receiptCode(r.hash), kind: r.kind, start: r.start, end: r.end, hours: r.hours, overtime: r.overtime, reason: r.reason, by: r.by, at: r.at });
+  const receiptView = (r: Receipt) => ({
+    code: receiptCode(r.hash),
+    kind: r.kind,
+    start: r.start,
+    end: r.end,
+    hours: r.hours,
+    overtime: r.overtime,
+    reason: r.reason,
+    by: r.by,
+    at: r.at,
+  });
 
   /** Seals a completed (or corrected) shift into the receipt chain. */
   function addReceipt(s: Shift, by: Receipt["by"], kind: Receipt["kind"] = "shift", reason?: string) {
     const w = worker(s.workerId);
     const hours = round2(shiftHours(s, now()));
     const r = seal(data.receipts, {
-      orgId: w.orgId, workerId: w.id, shiftId: s.id, start: s.start, end: s.end!, hours,
-      overtime: Math.max(0, round2(hours - org(w.orgId).policy.dailyHours)), kind, reason, by, at: now().toISOString(),
+      orgId: w.orgId,
+      workerId: w.id,
+      shiftId: s.id,
+      start: s.start,
+      end: s.end!,
+      hours,
+      overtime: Math.max(0, round2(hours - org(w.orgId).policy.dailyHours)),
+      kind,
+      reason,
+      by,
+      at: now().toISOString(),
     });
     data.receipts.push(r);
     return r;

@@ -5,9 +5,16 @@ process.env.FAIRSHIFT_AI = "off";
 
 function receipt(shiftId: string): Omit<Receipt, "hash" | "prev"> {
   return {
-    orgId: "orion", workerId: "w1", shiftId,
-    start: "2026-10-26T02:30:00.000Z", end: "2026-10-26T10:30:00.000Z",
-    hours: 8, overtime: 0, kind: "shift", by: "worker", at: "2026-10-26T10:30:00.000Z",
+    orgId: "orion",
+    workerId: "w1",
+    shiftId,
+    start: "2026-10-26T02:30:00.000Z",
+    end: "2026-10-26T10:30:00.000Z",
+    hours: 8,
+    overtime: 0,
+    kind: "shift",
+    by: "worker",
+    at: "2026-10-26T10:30:00.000Z",
   };
 }
 

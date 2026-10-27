@@ -33,7 +33,13 @@ export function ThemeToggle({ labels = { system: "Auto", light: "Light", dark: "
   const next: Record<ThemeChoice, ThemeChoice> = { system: "light", light: "dark", dark: "system" };
   const Icon = choice === "dark" ? Moon : choice === "light" ? Sun : Monitor;
   return (
-    <button type="button" className="btn sm theme-toggle" onClick={() => setChoice(next[choice])} aria-label={`Theme: ${labels[choice]}. Change theme`} title={labels[choice]}>
+    <button
+      type="button"
+      className="btn sm theme-toggle"
+      onClick={() => setChoice(next[choice])}
+      aria-label={`Theme: ${labels[choice]}. Change theme`}
+      title={labels[choice]}
+    >
       <Icon size={16} aria-hidden="true" /> <span>{labels[choice]}</span>
     </button>
   );
@@ -50,7 +56,12 @@ export function Logo({ light }: { light?: boolean }) {
 
 const COLORS = ["#161714", "#6d5bd0", "#8a6d3b", "#3a39b0", "#9b3d63", "#36606b", "#5b5f52"];
 export function Avatar({ name, size = 40 }: { name: string; size?: number }) {
-  const initials = name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
+  const initials = name
+    .split(" ")
+    .map((p) => p[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
   const color = COLORS[[...name].reduce((h, c) => h + c.charCodeAt(0), 0) % COLORS.length];
   return (
     <span className="avatar" style={{ background: color, width: size, height: size, fontSize: size * 0.38 }} aria-hidden="true">
@@ -77,12 +88,24 @@ export function Modal({ title, onClose, children }: { title: string; onClose: ()
       if (e.key === "Escape") return onClose();
       // keep keyboard focus inside the dialog
       if (e.key !== "Tab" || !ref.current) return;
-      const items = [...ref.current.querySelectorAll<HTMLElement>("button, a[href], input, select, textarea, [tabindex]:not([tabindex='-1'])")].filter((el) => !el.hasAttribute("disabled"));
+      const items = [...ref.current.querySelectorAll<HTMLElement>("button, a[href], input, select, textarea, [tabindex]:not([tabindex='-1'])")].filter(
+        (el) => !el.hasAttribute("disabled"),
+      );
       if (!items.length) return;
-      const first = items[0]!, last = items[items.length - 1]!;
-      if (e.shiftKey && document.activeElement === first) (e.preventDefault(), last.focus());
-      else if (!e.shiftKey && document.activeElement === last) (e.preventDefault(), first.focus());
-      else if (!ref.current.contains(document.activeElement)) (e.preventDefault(), first.focus());
+      const first = items[0]!,
+        last = items[items.length - 1]!;
+      const target =
+        e.shiftKey && document.activeElement === first
+          ? last
+          : !e.shiftKey && document.activeElement === last
+            ? first
+            : !ref.current.contains(document.activeElement)
+              ? first
+              : null;
+      if (target) {
+        e.preventDefault();
+        target.focus();
+      }
     };
     window.addEventListener("keydown", esc);
     return () => {
@@ -94,8 +117,12 @@ export function Modal({ title, onClose, children }: { title: string; onClose: ()
     <div className="modal-back" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal card" role="dialog" aria-modal="true" aria-label={title} ref={ref}>
         <div className="row">
-          <h2 className="grow" style={{ fontSize: 20 }}>{title}</h2>
-          <button type="button" className="btn ghost sm" onClick={onClose} aria-label="Close">✕</button>
+          <h2 className="grow" style={{ fontSize: 20 }}>
+            {title}
+          </h2>
+          <button type="button" className="btn ghost sm" onClick={onClose} aria-label="Close">
+            ✕
+          </button>
         </div>
         {children}
       </div>
@@ -103,23 +130,39 @@ export function Modal({ title, onClose, children }: { title: string; onClose: ()
   );
 }
 
-/** Loads data and reloads on demand; keeps the last good value while refreshing. */
-export function useLoad<T>(load: () => Promise<T>, deps: unknown[] = []) {
+/**
+ * Loads data and reloads on demand; keeps the last good value while refreshing.
+ * `key` is the value the request depends on (a period, a code); a new key loads again.
+ */
+export function useLoad<T>(load: () => Promise<T>, key?: string | number) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState("");
+  const loader = useRef(load);
+  useEffect(() => {
+    loader.current = load;
+  });
   const reload = useCallback(async () => {
     try {
-      setData(await load());
+      setData(await loader.current());
       setError("");
     } catch (e) {
       setError((e as Error).message);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
+  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps -- key is the request's only input
   useEffect(() => {
     void reload();
   }, [reload]);
   return { data, error, reload, setData };
+}
+
+/** The current time, refreshed every 30 seconds, for "how long ago" and running-shift displays. */
+export function useNow(everyMs = 30_000) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const i = setInterval(() => setNow(Date.now()), everyMs);
+    return () => clearInterval(i);
+  }, [everyMs]);
+  return now;
 }
 
 export const rupees = (n: number) => `₹${Math.round(n).toLocaleString("en-IN")}`;

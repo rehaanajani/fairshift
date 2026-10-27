@@ -23,7 +23,11 @@ export const session = {
 };
 
 export class ApiError extends Error {
-  constructor(message: string, readonly status: number, readonly body?: unknown) {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly body?: unknown,
+  ) {
     super(message);
   }
 }
@@ -55,7 +59,11 @@ export async function download(path: string, filename: string, role: Role = "adm
     session.set(role, null);
     location.reload();
   }
-  if (!res.ok) throw new ApiError(res.status === 401 ? "Your session expired. Sign in again to download." : "Download failed. Check your connection and try again.", res.status);
+  if (!res.ok)
+    throw new ApiError(
+      res.status === 401 ? "Your session expired. Sign in again to download." : "Download failed. Check your connection and try again.",
+      res.status,
+    );
   const url = URL.createObjectURL(await res.blob());
   const a = Object.assign(document.createElement("a"), { href: url, download: filename });
   a.click();

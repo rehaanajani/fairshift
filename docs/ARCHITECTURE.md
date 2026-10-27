@@ -50,11 +50,11 @@ Typing and manual site-code entry must remain usable when microphone, camera, lo
 
 ## Cross-industry use
 
-| Sector | Worker needs | Employer actions |
-| --- | --- | --- |
-| Construction | Clear overtime, fall and electrical hazard reports, training records | Address unsafe equipment, excessive hours and missing rest |
-| Hospital | Night-shift rest, PPE availability, understandable pay | Investigate rapid shift turnarounds and supply shortages |
-| College | Attendance and pay for housekeeping, security, canteen and maintenance staff | Adjust busy-period staffing and respond to campus hazards |
+| Sector       | Worker needs                                                                 | Employer actions                                           |
+| ------------ | ---------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| Construction | Clear overtime, fall and electrical hazard reports, training records         | Address unsafe equipment, excessive hours and missing rest |
+| Hospital     | Night-shift rest, PPE availability, understandable pay                       | Investigate rapid shift turnarounds and supply shortages   |
+| College      | Attendance and pay for housekeeping, security, canteen and maintenance staff | Adjust busy-period staffing and respond to campus hazards  |
 
 Organisations share the same worker/site/shift/hazard model but supply their own policies. Demo construction uses a nine-hour daily threshold; hospital and college use eight. Policy defaults illustrate the prototype and need employer-specific review before payroll use. Quit-risk levels should prompt supportive conversations about workload, safety and pay.
 

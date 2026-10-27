@@ -91,34 +91,69 @@ export function seed(now = new Date()): Data {
       }
       const start = new Date(day.getTime() + startH * 3_600_000);
       const end = new Date(start.getTime() + len * 3_600_000);
-      shifts.push({ id: `s${shifts.length + 1}`, workerId: w.id, siteId: w.siteId, start: start.toISOString(), end: end.toISOString(), method: rand() < 0.7 ? "qr" : "gps" });
+      shifts.push({
+        id: `s${shifts.length + 1}`,
+        workerId: w.id,
+        siteId: w.siteId,
+        start: start.toISOString(),
+        end: end.toISOString(),
+        method: rand() < 0.7 ? "qr" : "gps",
+      });
     }
   });
 
   const ago = (days: number) => new Date(now.getTime() - days * 86_400_000).toISOString();
   const hazards: Hazard[] = [
     {
-      id: "h1", orgId: "orion", siteId: "orion-towers", reporterId: "w1", lang: "ta",
+      id: "h1",
+      orgId: "orion",
+      siteId: "orion-towers",
+      reporterId: "w1",
+      lang: "ta",
       text: "நான்காவது மாடியில் பாதுகாப்பு வலை கிழிந்துள்ளது",
-      category: "Fall from height", severity: 3, summary: "Safety net torn on the 4th floor; risk of falls.",
-      status: "open", createdAt: ago(2), updates: [],
+      category: "Fall from height",
+      severity: 3,
+      summary: "Safety net torn on the 4th floor; risk of falls.",
+      status: "open",
+      createdAt: ago(2),
+      updates: [],
     },
     {
-      id: "h2", orgId: "citycare", siteId: "citycare-main", lang: "hi",
+      id: "h2",
+      orgId: "citycare",
+      siteId: "citycare-main",
+      lang: "hi",
       text: "वार्ड 3 में दस्ताने खत्म हो गए हैं, बिना दस्ताने के सफाई करनी पड़ रही है",
-      category: "Missing protective equipment", severity: 2, summary: "Ward 3 has run out of gloves; staff cleaning without them.",
-      status: "acknowledged", createdAt: ago(4), updates: [{ at: ago(3), status: "acknowledged", note: "Order placed with store" }],
+      category: "Missing protective equipment",
+      severity: 2,
+      summary: "Ward 3 has run out of gloves; staff cleaning without them.",
+      status: "acknowledged",
+      createdAt: ago(4),
+      updates: [{ at: ago(3), status: "acknowledged", note: "Order placed with store" }],
     },
     {
-      id: "h3", orgId: "campus", siteId: "campus-ktr", reporterId: "w10", lang: "kn",
+      id: "h3",
+      orgId: "campus",
+      siteId: "campus-ktr",
+      reporterId: "w10",
+      lang: "kn",
       text: "ಹಾಸ್ಟೆಲ್ ಬ್ಲಾಕ್ ಬಿ ಯಲ್ಲಿ ತೆರೆದ ವಿದ್ಯುತ್ ತಂತಿ",
-      category: "Electrical", severity: 3, summary: "Exposed live wire in hostel block B.",
-      status: "fixed", createdAt: ago(9), updates: [{ at: ago(8), status: "fixed", note: "Wire insulated and box closed" }],
+      category: "Electrical",
+      severity: 3,
+      summary: "Exposed live wire in hostel block B.",
+      status: "fixed",
+      createdAt: ago(9),
+      updates: [{ at: ago(8), status: "fixed", note: "Wire insulated and box closed" }],
     },
   ];
 
   const fb = (orgId: string, topic: Feedback["topic"], rating: Feedback["rating"], text: string, days: number): Feedback => ({
-    id: `f${orgId}${days}${topic}`, orgId, topic, rating, text, day: ago(days).slice(0, 10),
+    id: `f${orgId}${days}${topic}`,
+    orgId,
+    topic,
+    rating,
+    text,
+    day: ago(days).slice(0, 10),
   });
   const feedback: Feedback[] = [
     fb("orion", "pay", 2, "Overtime is not shown anywhere, we don't know if we are paid for it", 1),
@@ -139,7 +174,14 @@ export function seed(now = new Date()): Data {
   ];
 
   const skills: Skill[] = [
-    { id: "k1", workerId: "w1", title: "Brick and block masonry, NSQF level 4", issuer: "Construction Skill Development Council", date: "2021-03-10", verified: true },
+    {
+      id: "k1",
+      workerId: "w1",
+      title: "Brick and block masonry, NSQF level 4",
+      issuer: "Construction Skill Development Council",
+      date: "2021-03-10",
+      verified: true,
+    },
     { id: "k2", workerId: "w1", title: "Working at height safety", issuer: "Orion Builders", date: ago(60).slice(0, 10), verified: true },
     { id: "k3", workerId: "w4", title: "Bar bending and steel fixing", issuer: "Orion Builders", date: "2023-08-01", verified: true },
     { id: "k4", workerId: "w5", title: "Basic life support (BLS)", issuer: "CityCare Hospital", date: "2025-01-15", verified: true },
@@ -153,7 +195,20 @@ export function seed(now = new Date()): Data {
     const w = workers.find((x) => x.id === s.workerId)!;
     const policy = orgs.find((o) => o.id === w.orgId)!.policy;
     const hours = Math.round(shiftHours(s) * 100) / 100;
-    receipts.push(seal(receipts, { orgId: w.orgId, workerId: w.id, shiftId: s.id, start: s.start, end: s.end!, hours, overtime: Math.max(0, Math.round((hours - policy.dailyHours) * 100) / 100), kind: "shift", by: "worker", at: s.end! }));
+    receipts.push(
+      seal(receipts, {
+        orgId: w.orgId,
+        workerId: w.id,
+        shiftId: s.id,
+        start: s.start,
+        end: s.end!,
+        hours,
+        overtime: Math.max(0, Math.round((hours - policy.dailyHours) * 100) / 100),
+        kind: "shift",
+        by: "worker",
+        at: s.end!,
+      }),
+    );
   }
 
   return { orgs, sites, workers, shifts, hazards, feedback, skills, receipts, planned: [] };

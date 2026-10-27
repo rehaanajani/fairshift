@@ -7,15 +7,26 @@ process.env.FAIRSHIFT_AI = "off";
 const HOUR = 3_600_000;
 const fixed = new Date("2026-10-27T12:00:00.000Z");
 const worker: Worker = {
-  id: "worker", orgId: "orion", siteId: "site", name: "Test worker", phone: "9000000001",
-  pin: "1234", job: "Mason", lang: "en", hourlyRate: 100, joinedOn: "2025-01-01",
+  id: "worker",
+  orgId: "orion",
+  siteId: "site",
+  name: "Test worker",
+  phone: "9000000001",
+  pin: "1234",
+  job: "Mason",
+  lang: "en",
+  hourlyRate: 100,
+  joinedOn: "2025-01-01",
 };
 const shift = (start: string, hours: number): Shift => ({
-  id: start, workerId: worker.id, siteId: worker.siteId, start,
-  end: new Date(new Date(start).getTime() + hours * HOUR).toISOString(), method: "qr",
+  id: start,
+  workerId: worker.id,
+  siteId: worker.siteId,
+  start,
+  end: new Date(new Date(start).getTime() + hours * HOUR).toISOString(),
+  method: "qr",
 });
-const days = (hours: number, count: number) => Array.from({ length: count }, (_, i) =>
-  shift(new Date(Date.UTC(2026, 9, 19 + i, 8)).toISOString(), hours));
+const days = (hours: number, count: number) => Array.from({ length: count }, (_, i) => shift(new Date(Date.UTC(2026, 9, 19 + i, 8)).toISOString(), hours));
 
 describe("splitHours", () => {
   it("returns zero hours for no shifts", () => {
@@ -62,12 +73,14 @@ describe("payslip", () => {
   it("deducts PF from regular pay and ESI from gross, including overtime", () => {
     const slip = payslip(worker, days(11, 6), DEFAULT_POLICY, from, to, fixed);
     expect(slip.hours).toEqual({ regular: 48, overtime: 18, dailyOvertime: 12, weeklyOvertime: 6 });
-    expect(slip.lines).toEqual(expect.arrayContaining([
-      expect.objectContaining({ key: "regular", hours: 48, rate: 100, amount: 4800 }),
-      expect.objectContaining({ key: "overtime", hours: 18, rate: 200, amount: 3600 }),
-      expect.objectContaining({ key: "pf", amount: -576 }), // 12% of 4800
-      expect.objectContaining({ key: "esi", amount: -63 }), // 0.75% of 8400
-    ]));
+    expect(slip.lines).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ key: "regular", hours: 48, rate: 100, amount: 4800 }),
+        expect.objectContaining({ key: "overtime", hours: 18, rate: 200, amount: 3600 }),
+        expect.objectContaining({ key: "pf", amount: -576 }), // 12% of 4800
+        expect.objectContaining({ key: "esi", amount: -63 }), // 0.75% of 8400
+      ]),
+    );
     expect(slip.gross).toBe(8400);
     expect(slip.deductions).toBe(639);
     expect(slip.net).toBe(7761);
@@ -78,8 +91,7 @@ describe("payslip", () => {
     const included = shift(from, 8);
     const open = shift("2026-10-20T08:00:00.000Z", 8);
     delete open.end;
-    const shifts = [included, open, shift("2026-10-18T08:00:00.000Z", 8), shift(to, 8),
-      { ...shift("2026-10-21T08:00:00.000Z", 8), workerId: "someone-else" }];
+    const shifts = [included, open, shift("2026-10-18T08:00:00.000Z", 8), shift(to, 8), { ...shift("2026-10-21T08:00:00.000Z", 8), workerId: "someone-else" }];
     const slip = payslip(worker, shifts, DEFAULT_POLICY, from, to, fixed);
     expect(slip.shifts).toBe(1);
     expect(slip.hours.regular).toBe(8);
@@ -96,28 +108,29 @@ describe("payslip", () => {
 });
 
 describe("fatigueFlags", () => {
-  it.each([{ hours: 12, flagged: false }, { hours: 12.01, flagged: true }])(
-    "flags a $hours hour shift only above 12 hours", ({ hours, flagged }) => {
-      const flags = fatigueFlags(days(hours, 1), DEFAULT_POLICY, fixed);
-      expect(flags.some((f) => f.kind === "long-shift")).toBe(flagged);
-    });
+  it.each([
+    { hours: 12, flagged: false },
+    { hours: 12.01, flagged: true },
+  ])("flags a $hours hour shift only above 12 hours", ({ hours, flagged }) => {
+    const flags = fatigueFlags(days(hours, 1), DEFAULT_POLICY, fixed);
+    expect(flags.some((f) => f.kind === "long-shift")).toBe(flagged);
+  });
 
-  it.each([{ rest: 10, flagged: false }, { rest: 9.5, flagged: true }])(
-    "flags $rest hours of rest only below 10 hours", ({ rest, flagged }) => {
-      const first = shift("2026-10-19T08:00:00.000Z", 8);
-      const second = shift(new Date(new Date(first.end!).getTime() + rest * HOUR).toISOString(), 8);
-      // Deliberately unsorted input: rest is measured in chronological order.
-      const flags = fatigueFlags([second, first], DEFAULT_POLICY, fixed);
-      expect(flags.filter((f) => f.kind === "short-rest")).toEqual(flagged
-        ? [expect.objectContaining({ kind: "short-rest", at: second.start })] : []);
-    });
+  it.each([
+    { rest: 10, flagged: false },
+    { rest: 9.5, flagged: true },
+  ])("flags $rest hours of rest only below 10 hours", ({ rest, flagged }) => {
+    const first = shift("2026-10-19T08:00:00.000Z", 8);
+    const second = shift(new Date(new Date(first.end!).getTime() + rest * HOUR).toISOString(), 8);
+    // Deliberately unsorted input: rest is measured in chronological order.
+    const flags = fatigueFlags([second, first], DEFAULT_POLICY, fixed);
+    expect(flags.filter((f) => f.kind === "short-rest")).toEqual(flagged ? [expect.objectContaining({ kind: "short-rest", at: second.start })] : []);
+  });
 
   it("flags the seventh consecutive working day, but not the sixth", () => {
     expect(fatigueFlags(days(4, 6), DEFAULT_POLICY, fixed)).toEqual([]);
     const shifts = days(4, 8);
-    expect(fatigueFlags(shifts, DEFAULT_POLICY, fixed)).toEqual([
-      expect.objectContaining({ kind: "no-day-off", at: shifts[6]!.start }),
-    ]);
+    expect(fatigueFlags(shifts, DEFAULT_POLICY, fixed)).toEqual([expect.objectContaining({ kind: "no-day-off", at: shifts[6]!.start })]);
   });
 
   it("resets consecutive days after a day off", () => {
@@ -132,12 +145,10 @@ describe("fatigueFlags", () => {
 });
 
 describe("restProblems", () => {
-  const check = (existing: { start: string; end?: string }[], planned: Shift) =>
-    restProblems(existing, planned.start, planned.end!, DEFAULT_POLICY, fixed);
+  const check = (existing: { start: string; end?: string }[], planned: Shift) => restProblems(existing, planned.start, planned.end!, DEFAULT_POLICY, fixed);
 
   it("rejects overlapping shifts", () => {
-    expect(check([shift("2026-10-19T08:00:00.000Z", 8)], shift("2026-10-19T12:00:00.000Z", 4)))
-      .toEqual(["overlaps another shift"]);
+    expect(check([shift("2026-10-19T08:00:00.000Z", 8)], shift("2026-10-19T12:00:00.000Z", 4))).toEqual(["overlaps another shift"]);
   });
 
   it("treats an open shift as unfinished: nothing can be planned after it", () => {
@@ -164,19 +175,18 @@ describe("restProblems", () => {
   });
 
   it("also checks rest before an existing future shift", () => {
-    expect(check([shift("2026-10-20T01:30:00.000Z", 8)], shift("2026-10-19T08:00:00.000Z", 8)))
-      .toEqual(["only 9.5 hours of rest next to another shift (needs 10)"]);
+    expect(check([shift("2026-10-20T01:30:00.000Z", 8)], shift("2026-10-19T08:00:00.000Z", 8))).toEqual([
+      "only 9.5 hours of rest next to another shift (needs 10)",
+    ]);
   });
 
   it.each([12, 12.5])("rejects planned shifts only above the 12-hour maximum (%s hours)", (hours) => {
-    expect(check([], shift("2026-10-19T08:00:00.000Z", hours)))
-      .toEqual(hours > 12 ? ["12.5 hour shift is over the 12 hour limit"] : []);
+    expect(check([], shift("2026-10-19T08:00:00.000Z", hours))).toEqual(hours > 12 ? ["12.5 hour shift is over the 12 hour limit"] : []);
   });
 
   it.each([10, 11])("checks weekly hours against the 60-hour cap (%s hours added)", (hours) => {
     // Five ten-hour days plus Saturday: exactly 60 is allowed, 61 is refused.
-    expect(check(days(10, 5), shift("2026-10-24T08:00:00.000Z", hours)))
-      .toEqual(hours === 11 ? ["would make 61 hours this week"] : []);
+    expect(check(days(10, 5), shift("2026-10-24T08:00:00.000Z", hours))).toEqual(hours === 11 ? ["would make 61 hours this week"] : []);
   });
 
   it("does not add last week's hours to a new Monday", () => {
@@ -184,8 +194,7 @@ describe("restProblems", () => {
   });
 
   it("rejects the seventh consecutive working day", () => {
-    expect(check(days(4, 6), shift("2026-10-25T08:00:00.000Z", 4)))
-      .toEqual(["day 7 in a row without a day off"]);
+    expect(check(days(4, 6), shift("2026-10-25T08:00:00.000Z", 4))).toEqual(["day 7 in a row without a day off"]);
   });
 
   it("allows a shift after a day off resets the streak", () => {
@@ -195,8 +204,12 @@ describe("restProblems", () => {
 
 describe("quitRisk", () => {
   const baseline: RiskInput = {
-    overtimeHours14d: 0, fatigueFlags14d: 0, missedDays14d: 0,
-    openHazardsReported: 0, tenureDays: 90, payBelowMinimum: false,
+    overtimeHours14d: 0,
+    fatigueFlags14d: 0,
+    missedDays14d: 0,
+    openHazardsReported: 0,
+    tenureDays: 90,
+    payBelowMinimum: false,
   };
 
   it("has low risk and no reasons without risk signals", () => {
@@ -228,8 +241,7 @@ describe("quitRisk", () => {
   });
 
   it("caps combined risk at 100 and retains all explanations", () => {
-    const result = quitRisk({ overtimeHours14d: 100, fatigueFlags14d: 20, missedDays14d: 14,
-      openHazardsReported: 10, tenureDays: 1, payBelowMinimum: true });
+    const result = quitRisk({ overtimeHours14d: 100, fatigueFlags14d: 20, missedDays14d: 14, openHazardsReported: 10, tenureDays: 1, payBelowMinimum: true });
     expect(result).toMatchObject({ score: 100, level: "high" });
     expect(result.reasons).toHaveLength(6);
   });

@@ -45,28 +45,36 @@ function Landing() {
         </a>
       </header>
       <section className="hero">
-        <span className="chip green" style={{ justifySelf: "start" }}>UN SDG 8 · Decent work and economic growth</span>
+        <span className="chip green" style={{ justifySelf: "start" }}>
+          UN SDG 8 · Decent work and economic growth
+        </span>
         <h1>
           Every hour gets a <em>receipt</em>. Every worker gets a <em>voice</em>.
         </h1>
         <p>
-          FairShift replaces paper registers and WhatsApp groups on construction sites, in hospitals and on college campuses. Workers just talk, in any of 16 Indian
-          languages. Employers see who is overworked, unsafe or about to quit, before it becomes a crisis.
+          FairShift replaces paper registers and WhatsApp groups on construction sites, in hospitals and on college campuses. Workers just talk, in any of 16
+          Indian languages. Employers see who is overworked, unsafe or about to quit, before it becomes a crisis.
         </p>
       </section>
       <div className="doors">
         <a className="door card" href="#/worker">
-          <span className="ic" style={{ background: "var(--gold-soft)", color: "var(--gold)" }}><Smartphone aria-hidden="true" /></span>
+          <span className="ic" style={{ background: "var(--gold-soft)", color: "var(--gold)" }}>
+            <Smartphone aria-hidden="true" />
+          </span>
           <h2>I'm a worker</h2>
           <span className="muted">Start and end shifts, hear your pay explained, report danger, speak up safely.</span>
         </a>
         <a className="door card" href="#/admin">
-          <span className="ic" style={{ background: "var(--brand-soft)", color: "var(--brand)" }}><Building2 aria-hidden="true" /></span>
+          <span className="ic" style={{ background: "var(--brand-soft)", color: "var(--brand)" }}>
+            <Building2 aria-hidden="true" />
+          </span>
           <h2>I'm an employer</h2>
           <span className="muted">Live workforce health, safety queue, fatigue-safe rostering and inspection-ready registers.</span>
         </a>
         <a className="door card" href="#/demo">
-          <span className="ic" style={{ background: "var(--blue-soft)", color: "var(--blue)" }}><MonitorPlay aria-hidden="true" /></span>
+          <span className="ic" style={{ background: "var(--blue-soft)", color: "var(--blue)" }}>
+            <MonitorPlay aria-hidden="true" />
+          </span>
           <h2>Watch both, live</h2>
           <span className="muted">A worker's phone and the employer's dashboard side by side, updating in real time.</span>
         </a>
@@ -74,7 +82,11 @@ function Landing() {
       <section className="pillars" aria-label="What makes FairShift different">
         {[
           [Mic, "Nobody has to type", "Hold one button and speak. Gemini understands 16 Indian languages and Google Cloud answers out loud."],
-          [Receipt, "Hours that can't vanish", "Each shift is sealed into a tamper-evident receipt chain. Corrections are visible to the worker, with a reason."],
+          [
+            Receipt,
+            "Hours that can't vanish",
+            "Each shift is sealed into a tamper-evident receipt chain. Corrections are visible to the worker, with a reason.",
+          ],
           [HardHat, "Fatigue stopped before it starts", "Rostering refuses unsafe back-to-back shifts and suggests a rested colleague with the same skills."],
           [ShieldAlert, "Report danger with a photo", "Gemini reads the photo, rates the risk and alerts the manager live. Anonymous if you want."],
           [Languages, "From paper in one photo", "Snap the old handwritten register: Gemini reads it, imports every shift and flags unpaid overtime."],
@@ -85,7 +97,9 @@ function Landing() {
             <div className="pillar card" key={title as string}>
               <I size={22} color="var(--brand)" aria-hidden="true" />
               <h3>{title as string}</h3>
-              <p className="muted small" style={{ margin: 0 }}>{body as string}</p>
+              <p className="muted small" style={{ margin: 0 }}>
+                {body as string}
+              </p>
             </div>
           );
         })}
@@ -115,24 +129,51 @@ function WorkerGate() {
     <main className="login" id="main">
       {!embedded && <Logo />}
       <h1 style={{ fontSize: 26 }}>Who is working today?</h1>
-      <p className="muted" style={{ margin: 0 }}>Tap your name. Demo PIN is {data?.demo.workerPin ?? "1234"}.</p>
+      <p className="muted" style={{ margin: 0 }}>
+        Tap your name. Demo PIN is {data?.demo.workerPin ?? "1234"}.
+      </p>
       <div className="people" role="list">
         {data?.demo.workers.map((w) => (
-          <button key={w.phone} type="button" role="listitem" className="person" aria-pressed={pick === w.phone} onClick={() => (setPick(w.phone), setPin(data.demo.workerPin), void login(w.phone, data.demo.workerPin))}>
+          <button
+            key={w.phone}
+            type="button"
+            role="listitem"
+            className="person"
+            aria-pressed={pick === w.phone}
+            onClick={() => (setPick(w.phone), setPin(data.demo.workerPin), void login(w.phone, data.demo.workerPin))}
+          >
             <span className="row" style={{ gap: 8 }}>
               <Avatar name={w.name} size={32} />
-              <strong className="grow" style={{ fontSize: 14 }}>{w.name}</strong>
+              <strong className="grow" style={{ fontSize: 14 }}>
+                {w.name}
+              </strong>
             </span>
-            <span className="tiny muted">{w.job} · {w.org}</span>
-            <span className="tiny" style={{ fontWeight: 700 }}>{LANG_LABEL[w.lang]}</span>
+            <span className="tiny muted">
+              {w.job} · {w.org}
+            </span>
+            <span className="tiny" style={{ fontWeight: 700 }}>
+              {LANG_LABEL[w.lang]}
+            </span>
           </button>
         ))}
       </div>
       <form className="card pad col" onSubmit={(e) => (e.preventDefault(), void login(pick, pin))}>
-        <label className="field">Phone number<input className="input" inputMode="numeric" autoComplete="tel" value={pick} onChange={(e) => setPick(e.target.value)} /></label>
-        <label className="field">PIN<input className="input" inputMode="numeric" type="password" autoComplete="current-password" value={pin} onChange={(e) => setPin(e.target.value)} /></label>
-        {error && <p className="error" role="alert">{error}</p>}
-        <button className="btn primary lg" type="submit">Start</button>
+        <label className="field">
+          Phone number
+          <input className="input" inputMode="numeric" autoComplete="tel" value={pick} onChange={(e) => setPick(e.target.value)} />
+        </label>
+        <label className="field">
+          PIN
+          <input className="input" inputMode="numeric" type="password" autoComplete="current-password" value={pin} onChange={(e) => setPin(e.target.value)} />
+        </label>
+        {error && (
+          <p className="error" role="alert">
+            {error}
+          </p>
+        )}
+        <button className="btn primary lg" type="submit">
+          Start
+        </button>
       </form>
     </main>
   );
@@ -151,15 +192,26 @@ function AdminGate() {
       setError((e as Error).message);
     }
   };
-  if (token && data) return <Admin key={token} orgs={data.orgs} onSwitch={(id) => void login(id, data.demo.adminPin)} onLogout={() => (session.set("admin", null), setToken(null))} />;
+  if (token && data)
+    return (
+      <Admin key={token} orgs={data.orgs} onSwitch={(id) => void login(id, data.demo.adminPin)} onLogout={() => (session.set("admin", null), setToken(null))} />
+    );
   return (
     <main className="login" id="main">
       <Logo />
       <h1 style={{ fontSize: 26 }}>Employer sign in</h1>
-      <p className="muted" style={{ margin: 0 }}>The same FairShift engine, three very different workplaces. Demo PIN is {data?.demo.adminPin ?? "4321"}.</p>
+      <p className="muted" style={{ margin: 0 }}>
+        The same FairShift engine, three very different workplaces. Demo PIN is {data?.demo.adminPin ?? "4321"}.
+      </p>
       <div className="col">
         {data?.orgs.map((o) => (
-          <button key={o.id} type="button" className="card pad row" style={{ textAlign: "left", cursor: "pointer" }} onClick={() => void login(o.id, data.demo.adminPin)}>
+          <button
+            key={o.id}
+            type="button"
+            className="card pad row"
+            style={{ textAlign: "left", cursor: "pointer" }}
+            onClick={() => void login(o.id, data.demo.adminPin)}
+          >
             <Avatar name={o.name} />
             <span className="grow">
               <strong>{o.name}</strong>
@@ -170,7 +222,11 @@ function AdminGate() {
           </button>
         ))}
       </div>
-      {error && <p className="error" role="alert">{error}</p>}
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
     </main>
   );
 }
@@ -218,20 +274,48 @@ function Demo() {
 }
 
 function VerifyReceipt({ code }: { code: string }) {
-  const { data, error } = useLoad(() => api<{ valid: boolean; corrected: boolean; receipt: { code: string; start: string; end: string; hours: number; overtime: number; employer: string; worker: string; kind: string; by: string } }>(`/receipts/${encodeURIComponent(code)}`), [code]);
+  const { data, error } = useLoad(
+    () =>
+      api<{
+        valid: boolean;
+        corrected: boolean;
+        receipt: { code: string; start: string; end: string; hours: number; overtime: number; employer: string; worker: string; kind: string; by: string };
+      }>(`/receipts/${encodeURIComponent(code)}`),
+    code,
+  );
   return (
     <main className="login" id="main">
       <Logo />
       <h1 style={{ fontSize: 26 }}>Shift receipt check</h1>
-      {error && <p className="error" role="alert">{error}</p>}
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
       {data && (
         <div className="receipt" style={{ borderColor: data.valid ? "var(--brand)" : "var(--red)" }}>
-          <span className={`chip ${data.valid ? "green" : "red"}`} style={{ justifySelf: "start" }}>{data.valid ? "✓ Genuine, unchanged" : "✗ Tampered"}</span>
-          {data.corrected && <span className="chip gold" style={{ justifySelf: "start" }}>A later correction exists for this shift</span>}
-          <strong className="mono" style={{ fontSize: 22 }}>{data.receipt.code}</strong>
-          <span>{data.receipt.worker} at {data.receipt.employer}</span>
-          <span className="muted">{day(data.receipt.start)} · {new Date(data.receipt.start).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })} to {new Date(data.receipt.end).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}</span>
-          <span><strong>{data.receipt.hours} hours</strong>{data.receipt.overtime > 0 && `, including ${data.receipt.overtime} overtime`}</span>
+          <span className={`chip ${data.valid ? "green" : "red"}`} style={{ justifySelf: "start" }}>
+            {data.valid ? "✓ Genuine, unchanged" : "✗ Tampered"}
+          </span>
+          {data.corrected && (
+            <span className="chip gold" style={{ justifySelf: "start" }}>
+              A later correction exists for this shift
+            </span>
+          )}
+          <strong className="mono" style={{ fontSize: 22 }}>
+            {data.receipt.code}
+          </strong>
+          <span>
+            {data.receipt.worker} at {data.receipt.employer}
+          </span>
+          <span className="muted">
+            {day(data.receipt.start)} · {new Date(data.receipt.start).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })} to{" "}
+            {new Date(data.receipt.end).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}
+          </span>
+          <span>
+            <strong>{data.receipt.hours} hours</strong>
+            {data.receipt.overtime > 0 && `, including ${data.receipt.overtime} overtime`}
+          </span>
         </div>
       )}
     </main>
@@ -239,26 +323,60 @@ function VerifyReceipt({ code }: { code: string }) {
 }
 
 function Passport({ id }: { id: string }) {
-  const { data, error } = useLoad(() => api<{ name: string; job: string; employer: string; sector: string; since: string; shifts: number; hours: number; receipts: number; skills: { title: string; issuer: string; date: string; verified: boolean }[] }>(`/passport/${encodeURIComponent(id)}`), [id]);
+  const { data, error } = useLoad(
+    () =>
+      api<{
+        name: string;
+        job: string;
+        employer: string;
+        sector: string;
+        since: string;
+        shifts: number;
+        hours: number;
+        receipts: number;
+        skills: { title: string; issuer: string; date: string; verified: boolean }[];
+      }>(`/passport/${encodeURIComponent(id)}`),
+    id,
+  );
   return (
     <main className="login" id="main">
       <Logo />
-      {error && <p className="error" role="alert">{error}</p>}
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
       {data && (
         <>
           <div className="passport">
-            <span className="tiny" style={{ letterSpacing: ".1em", fontWeight: 800, opacity: 0.8 }}>FAIRSHIFT SKILL PASSPORT · VERIFIED</span>
+            <span className="tiny" style={{ letterSpacing: ".1em", fontWeight: 800, opacity: 0.8 }}>
+              FAIRSHIFT SKILL PASSPORT · VERIFIED
+            </span>
             <div className="row">
               <Avatar name={data.name} size={56} />
               <div>
                 <h1 style={{ fontSize: 24 }}>{data.name}</h1>
-                <span style={{ opacity: 0.85 }}>{data.job} · {SECTOR_LABEL[data.sector]}</span>
+                <span style={{ opacity: 0.85 }}>
+                  {data.job} · {SECTOR_LABEL[data.sector]}
+                </span>
               </div>
             </div>
             <div className="row" style={{ gap: 22 }}>
-              <div><strong style={{ fontSize: 24 }}>{data.hours}</strong><br /><span className="tiny">hours worked</span></div>
-              <div><strong style={{ fontSize: 24 }}>{data.shifts}</strong><br /><span className="tiny">shifts</span></div>
-              <div><strong style={{ fontSize: 24 }}>{data.receipts}</strong><br /><span className="tiny">sealed receipts</span></div>
+              <div>
+                <strong style={{ fontSize: 24 }}>{data.hours}</strong>
+                <br />
+                <span className="tiny">hours worked</span>
+              </div>
+              <div>
+                <strong style={{ fontSize: 24 }}>{data.shifts}</strong>
+                <br />
+                <span className="tiny">shifts</span>
+              </div>
+              <div>
+                <strong style={{ fontSize: 24 }}>{data.receipts}</strong>
+                <br />
+                <span className="tiny">sealed receipts</span>
+              </div>
             </div>
           </div>
           <div className="card pad col">
@@ -266,11 +384,19 @@ function Passport({ id }: { id: string }) {
             {data.skills.map((s) => (
               <div key={s.title} className="row">
                 <BadgeCheck color={s.verified ? "var(--brand)" : "var(--muted)"} aria-hidden="true" />
-                <span className="grow"><strong>{s.title}</strong><br /><span className="small muted">{s.issuer} · {s.date}</span></span>
+                <span className="grow">
+                  <strong>{s.title}</strong>
+                  <br />
+                  <span className="small muted">
+                    {s.issuer} · {s.date}
+                  </span>
+                </span>
                 {s.verified && <span className="chip green">Verified</span>}
               </div>
             ))}
-            <p className="small muted" style={{ margin: 0 }}>Currently with {data.employer} since {data.since}.</p>
+            <p className="small muted" style={{ margin: 0 }}>
+              Currently with {data.employer} since {data.since}.
+            </p>
           </div>
         </>
       )}

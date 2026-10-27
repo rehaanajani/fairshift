@@ -26,7 +26,12 @@ export function workerRoutes(ctx: Context) {
       `Last 30 days: ${slip.shifts} shifts, ${slip.hours.regular} regular hours, ${slip.hours.overtime} overtime hours. Gross ₹${slip.gross}, PF ₹${-slip.lines[2]!.amount}, ESI ₹${-slip.lines[3]!.amount}, take-home ₹${slip.net}.`,
       `On shift now: ${shiftsOf(m.id).some((s) => !s.end) ? "yes" : "no"}. Next planned shift: ${next ? next.start : "none"}.`,
       `Fatigue warnings in 14 days: ${flags.length ? flags.map((f) => f.detail).join("; ") : "none"}.`,
-      `Skills: ${data.skills.filter((k) => k.workerId === m.id).map((k) => k.title).join(", ") || "none recorded yet"}.`,
+      `Skills: ${
+        data.skills
+          .filter((k) => k.workerId === m.id)
+          .map((k) => k.title)
+          .join(", ") || "none recorded yet"
+      }.`,
       `Helplines: labour grievances via the Samadhan portal or the state labour office; emergencies 112.`,
     ].join("\n");
   }
@@ -41,11 +46,19 @@ export function workerRoutes(ctx: Context) {
       org: { name: o.name, sector: o.sector, policy: o.policy },
       site: { name: siteOf(m.orgId).name },
       onShift: mine.find((s) => !s.end) ?? null,
-      hours14d: splitHours(recent.filter((s) => s.end), o.policy, now()),
+      hours14d: splitHours(
+        recent.filter((s) => s.end),
+        o.policy,
+        now(),
+      ),
       daysWorked14d: new Set(recent.map((s) => localDay(s.start))).size,
       fatigue: fatigueFlags(recent, o.policy, now()).slice(-5),
       planned: data.planned.filter((p) => p.workerId === m.id && p.end > now().toISOString()),
-      receipts: data.receipts.filter((r) => r.workerId === m.id).slice(-12).reverse().map(receiptView),
+      receipts: data.receipts
+        .filter((r) => r.workerId === m.id)
+        .slice(-12)
+        .reverse()
+        .map(receiptView),
       skills: data.skills.filter((k) => k.workerId === m.id),
       passport: passportId(m.id),
       hazards: data.hazards.filter((h) => h.reporterId === m.id).map(({ reporterId: _r, ...h }) => h),
@@ -77,9 +90,13 @@ export function workerRoutes(ctx: Context) {
       if (code.toUpperCase() !== site.checkInCode) return void res.status(400).json({ error: "This QR code is not for your site.", code: "wrong_code" });
       method = "qr";
     } else if (lat !== undefined && lng !== undefined) {
-      if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return void res.status(400).json({ error: "That location isn't valid. Turn on GPS and try again.", code: "bad_location" });
+      if (Math.abs(lat) > 90 || Math.abs(lng) > 180)
+        return void res.status(400).json({ error: "That location isn't valid. Turn on GPS and try again.", code: "bad_location" });
       const d = distanceM({ lat, lng }, site);
-      if (d > site.radiusM) return void res.status(400).json({ error: `You are ${Math.round(d)} m from ${site.name}. Check in at the site.`, code: "too_far", meters: Math.round(d) });
+      if (d > site.radiusM)
+        return void res
+          .status(400)
+          .json({ error: `You are ${Math.round(d)} m from ${site.name}. Check in at the site.`, code: "too_far", meters: Math.round(d) });
       method = "gps";
     } else return void res.status(400).json({ error: "Scan the site QR code or share your location.", code: "need_code" });
     const shift: Shift = { id: randomUUID(), workerId: m.id, siteId: site.id, start: now().toISOString(), method };
@@ -107,7 +124,12 @@ export function workerRoutes(ctx: Context) {
 
   w.post("/payslip/explain", limit(20), async (req, res) => {
     const slip = slipFor(req);
-    res.json({ ...(await explainPayslip(slip.lines, slip.net, lang(req.body?.lang) ?? me(req).lang, text(req.body?.question, 300))), from: slip.from, to: slip.to, net: slip.net });
+    res.json({
+      ...(await explainPayslip(slip.lines, slip.net, lang(req.body?.lang) ?? me(req).lang, text(req.body?.question, 300))),
+      from: slip.from,
+      to: slip.to,
+      net: slip.net,
+    });
   });
 
   /** The one-button assistant: voice (or typed text) in any of 16 languages → grounded spoken answer + next action. */
@@ -180,7 +202,14 @@ export function workerRoutes(ctx: Context) {
     if (!topic || !rating || rating < 1 || rating > 5) return void res.status(400).json({ error: "Pick a topic and a rating." });
     const orgId = me(req).orgId;
     // stored without the worker's id, and with the day only, so it cannot be traced back
-    data.feedback.push({ id: randomUUID(), orgId, topic, rating: Math.round(rating) as 1, text: text(req.body?.text, 500) ?? "", day: now().toISOString().slice(0, 10) });
+    data.feedback.push({
+      id: randomUUID(),
+      orgId,
+      topic,
+      rating: Math.round(rating) as 1,
+      text: text(req.body?.text, 500) ?? "",
+      day: now().toISOString().slice(0, 10),
+    });
     store.changed({ type: "feedback", orgId });
     res.status(201).json({ ok: true });
   });

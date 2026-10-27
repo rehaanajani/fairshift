@@ -10,9 +10,21 @@ import { LANGS, type Lang } from "./types.ts";
 
 /** Cloud Text-to-Speech voices by language (Indian English and the major Indian languages). */
 const TTS_CODES: Partial<Record<Lang, string>> = {
-  en: "en-IN", hi: "hi-IN", bn: "bn-IN", ta: "ta-IN", te: "te-IN", kn: "kn-IN", ml: "ml-IN", mr: "mr-IN", gu: "gu-IN", pa: "pa-IN", ur: "ur-IN",
+  en: "en-IN",
+  hi: "hi-IN",
+  bn: "bn-IN",
+  ta: "ta-IN",
+  te: "te-IN",
+  kn: "kn-IN",
+  ml: "ml-IN",
+  mr: "mr-IN",
+  gu: "gu-IN",
+  pa: "pa-IN",
+  ur: "ur-IN",
   // Devanagari languages read well with Hindi or Marathi voices
-  ne: "hi-IN", mai: "hi-IN", kok: "mr-IN",
+  ne: "hi-IN",
+  mai: "hi-IN",
+  kok: "mr-IN",
 };
 const TIMEOUT_MS = 15_000;
 

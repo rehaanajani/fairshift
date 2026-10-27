@@ -21,7 +21,11 @@ export function adminRoutes(ctx: Context) {
   function personView(x: Worker) {
     const o = org(x.orgId);
     const recent = shiftsOf(x.id).filter((s) => s.start >= since(14));
-    const hours = splitHours(recent.filter((s) => s.end), o.policy, now());
+    const hours = splitHours(
+      recent.filter((s) => s.end),
+      o.policy,
+      now(),
+    );
     const flags = fatigueFlags(recent, o.policy, now());
     const worked = new Set(recent.map((s) => localDay(s.start))).size;
     const tenure = Math.floor((now().getTime() - new Date(x.joinedOn).getTime()) / DAY);
@@ -35,9 +39,18 @@ export function adminRoutes(ctx: Context) {
     });
     const open = shiftsOf(x.id).find((s) => !s.end);
     return {
-      id: x.id, name: x.name, job: x.job, lang: x.lang, hourlyRate: x.hourlyRate,
-      onShift: !!open, onShiftHours: open ? round2(shiftHours(open, now())) : 0,
-      daysWorked: worked, hours, fatigue: flags.slice(-3), fatigueCount: flags.length, risk,
+      id: x.id,
+      name: x.name,
+      job: x.job,
+      lang: x.lang,
+      hourlyRate: x.hourlyRate,
+      onShift: !!open,
+      onShiftHours: open ? round2(shiftHours(open, now())) : 0,
+      daysWorked: worked,
+      hours,
+      fatigue: flags.slice(-3),
+      fatigueCount: flags.length,
+      risk,
       skills: data.skills.filter((k) => k.workerId === x.id).map((k) => k.title),
     };
   }
@@ -48,7 +61,10 @@ export function adminRoutes(ctx: Context) {
     const staff = staffOf(o.id);
     const ids = new Set(staff.map((x) => x.id));
     const days = Array.from({ length: 14 }, (_, i) => localDay(now().getTime() - (13 - i) * DAY));
-    const attendance = days.map((d) => ({ day: d, present: new Set(data.shifts.filter((s) => localDay(s.start) === d && ids.has(s.workerId)).map((s) => s.workerId)).size }));
+    const attendance = days.map((d) => ({
+      day: d,
+      present: new Set(data.shifts.filter((s) => localDay(s.start) === d && ids.has(s.workerId)).map((s) => s.workerId)).size,
+    }));
     const people = staff.map(personView).sort((p, q) => q.risk.score - p.risk.score);
     const fb = data.feedback.filter((f) => f.orgId === o.id);
     const receipts = data.receipts.filter((r) => r.orgId === o.id);
@@ -69,13 +85,20 @@ export function adminRoutes(ctx: Context) {
       feedback: TOPICS.map((t) => {
         const xs = fb.filter((f) => f.topic === t);
         // averages of tiny groups would expose individuals, so they stay hidden
-        return { topic: t, count: xs.length, avg: xs.length >= ANONYMITY_MIN ? Math.round((xs.reduce((s, f) => s + f.rating, 0) / xs.length) * 10) / 10 : null };
+        return {
+          topic: t,
+          count: xs.length,
+          avg: xs.length >= ANONYMITY_MIN ? Math.round((xs.reduce((s, f) => s + f.rating, 0) / xs.length) * 10) / 10 : null,
+        };
       }),
       ledger: {
         receipts: receipts.length,
         corrections: receipts.filter((r) => r.kind === "correction").length,
         intact: firstBroken(data.receipts) === -1,
-        latest: receipts.slice(-6).reverse().map((r) => ({ ...receiptView(r), name: worker(r.workerId).name })),
+        latest: receipts
+          .slice(-6)
+          .reverse()
+          .map((r) => ({ ...receiptView(r), name: worker(r.workerId).name })),
       },
       belowMinimumWage: staff.filter((x) => x.hourlyRate < MIN_HOURLY_WAGE).map((x) => x.name),
     });
@@ -111,7 +134,9 @@ export function adminRoutes(ctx: Context) {
 
   a.get("/site/qr", async (req, res) => {
     const site = siteOf(req.session!.orgId);
-    res.type("image/svg+xml").send(await QRCode.toString(site.checkInCode, { type: "svg", margin: 1, width: 240, color: { dark: "#0b3d2e", light: "#ffffff" } }));
+    res
+      .type("image/svg+xml")
+      .send(await QRCode.toString(site.checkInCode, { type: "svg", margin: 1, width: 240, color: { dark: "#0b3d2e", light: "#ffffff" } }));
   });
 
   a.post("/skills", (req, res) => {
@@ -130,7 +155,8 @@ export function adminRoutes(ctx: Context) {
     const x = data.workers.find((p) => p.id === text(req.body?.workerId, 40) && p.orgId === o.id);
     const start = text(req.body?.start, 40);
     const hours = num(req.body?.hours);
-    if (!x || !start || Number.isNaN(Date.parse(start)) || !hours || hours <= 0 || hours > 16) return void res.status(400).json({ error: "Pick a worker, a start time and 1-16 hours." });
+    if (!x || !start || Number.isNaN(Date.parse(start)) || !hours || hours <= 0 || hours > 16)
+      return void res.status(400).json({ error: "Pick a worker, a start time and 1-16 hours." });
     const s = new Date(start).toISOString();
     const e = new Date(Date.parse(start) + hours * 3_600_000).toISOString();
     const busy = (id: string) => [...shiftsOf(id), ...data.planned.filter((p) => p.workerId === id)];
@@ -140,7 +166,14 @@ export function adminRoutes(ctx: Context) {
       const mySkills = new Set(data.skills.filter((k) => k.workerId === x.id).map((k) => k.title));
       const alternatives = staffOf(o.id)
         .filter((p) => p.id !== x.id && restProblems(busy(p.id), s, e, o.policy, now()).length === 0)
-        .map((p) => ({ id: p.id, name: p.name, job: p.job, sameJob: p.job === x.job, sharedSkills: data.skills.filter((k) => k.workerId === p.id && mySkills.has(k.title)).length, risk: personView(p).risk.score }))
+        .map((p) => ({
+          id: p.id,
+          name: p.name,
+          job: p.job,
+          sameJob: p.job === x.job,
+          sharedSkills: data.skills.filter((k) => k.workerId === p.id && mySkills.has(k.title)).length,
+          risk: personView(p).risk.score,
+        }))
         .sort((p, q) => Number(q.sameJob) - Number(p.sameJob) || q.sharedSkills - p.sharedSkills || p.risk - q.risk)
         .slice(0, 3);
       return void res.status(409).json({ error: `${x.name} needs rest.`, problems, alternatives });
@@ -183,7 +216,8 @@ export function adminRoutes(ctx: Context) {
     // validate everything before touching the shift, so a rejected correction changes nothing
     const ns = start ? Date.parse(start) : NaN;
     const ne = end ? Date.parse(end) : NaN;
-    if (!reason || !Number.isFinite(ns) || !Number.isFinite(ne) || ne <= ns || ne - ns > 24 * 3_600_000) return void res.status(400).json({ error: "Give valid corrected times (end after start, under 24 hours) and a reason." });
+    if (!reason || !Number.isFinite(ns) || !Number.isFinite(ne) || ne <= ns || ne - ns > 24 * 3_600_000)
+      return void res.status(400).json({ error: "Give valid corrected times (end after start, under 24 hours) and a reason." });
     s.start = new Date(ns).toISOString();
     s.end = new Date(ne).toISOString();
     const r = addReceipt(s, "admin", "correction", reason);
