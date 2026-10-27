@@ -264,3 +264,5 @@ main:focus { outline: none; }
 [data-mode="dark"] .passport .qr { border-radius: 18px; }
 .theme-toggle { gap: 6px; }
 @media (max-width: 420px) { .phone-top .theme-toggle span { display: none; } }
+.side .select { appearance: none; -webkit-appearance: none; padding-right: 40px; text-overflow: ellipsis; background-image: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%278%27 viewBox=%270 0 12 8%27%3E%3Cpath d=%27M1 1.5l5 5 5-5%27 fill=%27none%27 stroke=%27%23161714%27 stroke-width=%272%27 stroke-linecap=%27round%27/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; }
+[data-mode="dark"] .side .select { background-image: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%278%27 viewBox=%270 0 12 8%27%3E%3Cpath d=%27M1 1.5l5 5 5-5%27 fill=%27none%27 stroke=%27%23ecebf3%27 stroke-width=%272%27 stroke-linecap=%27round%27/%3E%3C/svg%3E"); }
