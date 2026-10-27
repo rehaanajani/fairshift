@@ -48,16 +48,16 @@ export function seed(now = new Date()): Data {
     // name, org, job, language, ₹/hour, work pattern, days since joining
     ["Murugan S", "orion", "Mason", "ta", 95, "overworked", 900],
     ["Ramesh Yadav", "orion", "Helper", "hi", 70, "overworked", 40],
-    ["Lakshmi R", "orion", "Helper", "ta", 78, "absent", 300],
+    ["Lakshmi Patil", "orion", "Helper", "mr", 78, "absent", 300],
     ["Raju Naidu", "orion", "Bar bender", "te", 90, "steady", 700],
-    ["Priya M", "citycare", "Nursing aide", "ta", 110, "nights", 500],
-    ["Anita Das", "citycare", "Ward attendant", "hi", 85, "steady", 1200],
+    ["Priya Nair", "citycare", "Nursing aide", "ml", 110, "nights", 500],
+    ["Anita Das", "citycare", "Ward attendant", "bn", 85, "steady", 1200],
     ["Kavya Gowda", "citycare", "Housekeeping", "kn", 80, "new", 30],
-    ["Selvi K", "campus", "Housekeeping", "ta", 80, "steady", 2000],
-    ["Suresh Reddy", "campus", "Security guard", "te", 85, "nights", 400],
+    ["Harpreet Kaur", "campus", "Housekeeping", "pa", 80, "steady", 2000],
+    ["Bhavesh Patel", "campus", "Security guard", "gu", 85, "nights", 400],
     ["Manjunath B", "campus", "Electrician", "kn", 120, "steady", 800],
-    ["Imran Khan", "campus", "Gardener", "hi", 72, "absent", 150],
-    ["Devi P", "campus", "Canteen staff", "ta", 82, "overworked", 600],
+    ["Imran Khan", "campus", "Gardener", "ur", 72, "absent", 150],
+    ["Pranjal Bora", "campus", "Canteen staff", "as", 82, "overworked", 600],
   ];
   const workers: Worker[] = people.map(([name, orgId, job, lang, rate, , tenure], i) => ({
     id: `w${i + 1}`,
