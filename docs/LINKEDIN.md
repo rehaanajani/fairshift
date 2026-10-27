@@ -13,11 +13,11 @@ He isn't rare. India has 5.65 crore construction workers registered with state w
 🧾 Every shift becomes a tamper-evident receipt. If his hours are edited later, he sees it, with the reason.
 📸 He photographs the torn net. Gemini rates it "fix today", and his manager sees it live. Anonymous if he wants.
 🛑 When his supervisor tries to give him a night shift after only 6 hours of rest, FairShift blocks it and suggests a rested colleague.
-📒 His employer photographs the old register once. Gemini reads the handwriting and finds the overtime nobody paid.
+📒 His employer photographs the old register once. Gemini reads the handwriting, the employer confirms each row, and FairShift finds the overtime nobody paid.
 
-**How it fits SDG 8:** on a 200-worker site, if the 1 in 4 who are underpaid each recover 6 hours of overtime a week, that's about ₹2.5 lakh a month back in workers' pockets. Employers adopt it because it produces the attendance, overtime and wage registers labour law already requires. One engine runs construction sites, hospitals and college campuses.
+**How it fits SDG 8:** in an illustrative 200-worker site, if the 1 in 4 who are underpaid each recover 6 hours of overtime a week, that's about ₹2.5 lakh a month back in workers' pockets (estimate). Employers adopt it because it produces the attendance, overtime and wage registers labour law already requires. One engine runs construction sites, hospitals and college campuses.
 
-Built entirely on Google Cloud: Cloud Run, Gemini 3.8 Flash and Gemini 4 Argon on Vertex AI, Cloud Text-to-Speech and Firestore.
+Works in 16 Indian languages, with light and dark themes and print-ready labour registers. Built entirely on Google Cloud: Cloud Run, Gemini 3.8 Flash and Gemini 4 Argon on Vertex AI, Cloud Text-to-Speech and Firestore.
 
 🔗 Try it live: https://fairshift-85398896185.asia-south1.run.app/#/demo
 💻 Code: https://github.com/rehaanajani/fairshift
