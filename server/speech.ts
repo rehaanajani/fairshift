@@ -47,7 +47,12 @@ export async function synthesize(text: string, lang: Lang): Promise<Spoken | nul
     const token = await auth.getAccessToken();
     const res = await fetch("https://texttospeech.googleapis.com/v1/text:synthesize", {
       method: "POST",
-      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+        // on a laptop (user credentials) the API needs a quota project; on Cloud Run the service account has one
+        ...(process.env.K_SERVICE ? {} : { "x-goog-user-project": process.env.GOOGLE_CLOUD_PROJECT! }),
+      },
       body: JSON.stringify({ input: { text: text.slice(0, 1400) }, voice: { languageCode }, audioConfig: { audioEncoding: "MP3", speakingRate: 0.95 } }),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
