@@ -8,7 +8,7 @@ import { assistant, explainPayslip, feedbackThemes, readRegister, triageHazard }
 import { issue, passportId, requireRole, samePin, verify } from "./auth.ts";
 import { firstBroken, receiptCode, seal, type Receipt } from "./ledger.ts";
 import { ANONYMITY_MIN, distanceM, fatigueFlags, payslip, quitRisk, restProblems, shiftHours, splitHours } from "./rules.ts";
-import { DEMO, MIN_HOURLY_WAGE, seed } from "./seed.ts";
+import { DEMO, MIN_HOURLY_WAGE, seed, type Data } from "./seed.ts";
 import { speechStatus, synthesize, transcribe } from "./speech.ts";
 import { Store, type Change } from "./store.ts";
 import { LANG_NAME, LANGS, type FeedbackTopic, type HazardStatus, type Lang, type Shift, type Worker } from "./types.ts";
@@ -55,7 +55,9 @@ function stream(store: Store, req: Request, res: Response, keep: (c: Change) => 
   });
 }
 
-export function createApp(store: Store = new Store(seed()), opts: { now?: () => Date } = {}) {
+/** Takes a Store (Firestore-backed in production) or plain data (tests, offline). */
+export function createApp(input: Store | Data = seed(), opts: { now?: () => Date } = {}) {
+  const store = input instanceof Store ? input : new Store(input);
   const now = opts.now ?? (() => new Date());
   const data = store.data;
   const app = express();
@@ -242,7 +244,7 @@ export function createApp(store: Store = new Store(seed()), opts: { now?: () => 
     open.end = now().toISOString();
     const r = addReceipt(open, "worker");
     store.changed({ type: "shift", orgId: m.orgId, workerId: m.id, action: "out" });
-    res.json({ shift: open, receipt: receiptView(r) });
+    res.json({ shift: open, hours: r.hours, overtime: r.overtime, receipt: receiptView(r) });
   });
 
   const slipFor = (req: Request) => {
@@ -307,7 +309,8 @@ export function createApp(store: Store = new Store(seed()), opts: { now?: () => 
     data.hazards.push(hazard);
     store.changed({ type: "hazard", orgId: m.orgId, id: hazard.id, action: "new", severity: t.severity });
     const spoken = await synthesize(t.advice, l);
-    res.status(201).json({ trackCode, category: t.category, severity: t.severity, advice: t.advice, speech: spoken, source: t.source });
+    const { reporterId: _r, trackCode: _t, ...publicHazard } = hazard as typeof hazard & { reporterId?: string };
+    res.status(201).json({ hazard: publicHazard, trackCode, category: t.category, severity: t.severity, advice: t.advice, speech: spoken, source: t.source });
   });
 
   /** Anonymous reporters follow their report with the tracking code alone. */
