@@ -75,6 +75,9 @@ export interface Hazard {
   status: HazardStatus;
   createdAt: string;
   updates: { at: string; status: HazardStatus; note: string }[];
+  /** lets an anonymous reporter follow the report without revealing who they are */
+  trackCode?: string;
+  hasPhoto?: boolean;
 }
 
 export type FeedbackTopic = "manager" | "conditions" | "pay" | "safety";

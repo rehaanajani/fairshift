@@ -231,3 +231,32 @@ export function distanceM(a: { lat: number; lng: number }, b: { lat: number; lng
 
 /** Only show feedback summaries for groups big enough that no one can be singled out. */
 export const ANONYMITY_MIN = 3;
+
+/**
+ * Checks a planned shift against rest rules before it is saved: the reasons it would be unsafe,
+ * or an empty list if it's fine. Uses worked and already-planned shifts together.
+ */
+export function restProblems(existing: { start: string; end?: string }[], start: string, end: string, policy: Policy, now = new Date()): string[] {
+  const s = new Date(start).getTime();
+  const e = new Date(end).getTime();
+  const problems: string[] = [];
+  const len = (e - s) / HOUR;
+  if (len > policy.maxShiftHours) problems.push(`${round2(len)} hour shift is over the ${policy.maxShiftHours} hour limit`);
+  const spans = existing.map((x) => ({ s: new Date(x.start).getTime(), e: x.end ? new Date(x.end).getTime() : now.getTime() }));
+  for (const x of spans) {
+    if (x.s < e && s < x.e) {
+      problems.push("overlaps another shift");
+      continue;
+    }
+    const gap = x.e <= s ? (s - x.e) / HOUR : x.s >= e ? (x.s - e) / HOUR : Infinity;
+    if (gap < policy.minRestHours) problems.push(`only ${round2(gap)} hours of rest next to another shift (needs ${policy.minRestHours})`);
+  }
+  const weekStart = new Date(weekOf(start)).getTime();
+  const weekHours = spans.filter((x) => x.s >= weekStart && x.s < weekStart + 7 * 24 * HOUR).reduce((h, x) => h + (x.e - x.s) / HOUR, 0) + len;
+  if (weekHours > policy.weeklyHours + 12) problems.push(`would make ${round2(weekHours)} hours this week`);
+  const days = new Set([...spans.map((x) => new Date(x.s).toISOString().slice(0, 10)), new Date(s).toISOString().slice(0, 10)]);
+  let streak = 0;
+  for (let d = new Date(s); days.has(d.toISOString().slice(0, 10)); d = new Date(d.getTime() - 24 * HOUR)) streak++;
+  if (streak > policy.maxConsecutiveDays) problems.push(`day ${streak} in a row without a day off`);
+  return [...new Set(problems)];
+}

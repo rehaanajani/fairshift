@@ -38,8 +38,14 @@ export class Store {
     }, SAVE_DELAY_MS);
   }
 
-  flush() {
-    return this.saving;
+  /** Saves now if a save is pending (used on shutdown). */
+  async flush() {
+    if (this.timer && this.persist) {
+      clearTimeout(this.timer);
+      this.timer = undefined;
+      await this.persist.save(this.data).catch(() => {});
+    }
+    await this.saving;
   }
 }
 

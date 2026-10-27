@@ -50,3 +50,6 @@ export function requireRole(role: Session["role"]) {
     next();
   };
 }
+
+/** Public, unguessable id for a worker's skill passport (safe to put in a QR code). */
+export const passportId = (workerId: string) => createHmac("sha256", SECRET).update(`passport:${workerId}`).digest("base64url").slice(0, 16);
