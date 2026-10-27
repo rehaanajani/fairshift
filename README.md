@@ -84,7 +84,7 @@ Worker phone (React, 16 languages) ─┐                      ┌─ Gemini on 
 Employer dashboard (live via SSE) ──┘   one container      └─ Firestore (state, batched saves)
 ```
 
-One Node 22 container on **Cloud Run** serves the web app and the JSON API. **Firestore** keeps the data. Changes stream to open dashboards with Server-Sent Events. The service account authenticates every Google call (ADC): **there are no API keys anywhere**. More detail is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+One Node 22 container on **Cloud Run** serves the web app and the JSON API. **Firestore** keeps the data. Changes stream to open dashboards with Server-Sent Events. The service account authenticates every Google call (ADC): **there are no API keys anywhere**. More detail is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [SECURITY.md](SECURITY.md) and [docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md).
 
 ## Evaluation criteria → evidence
 
