@@ -14,7 +14,7 @@ export function Logo({ light }: { light?: boolean }) {
   );
 }
 
-const COLORS = ["#0b5d3b", "#b45309", "#1d4ed8", "#7c3aed", "#be123c", "#0f766e", "#a16207"];
+const COLORS = ["#161714", "#6d5bd0", "#8a6d3b", "#3a39b0", "#9b3d63", "#36606b", "#5b5f52"];
 export function Avatar({ name, size = 40 }: { name: string; size?: number }) {
   const initials = name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
   const color = COLORS[[...name].reduce((h, c) => h + c.charCodeAt(0), 0) % COLORS.length];

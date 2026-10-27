@@ -66,9 +66,9 @@ export function Admin({ orgs, onSwitch, onLogout }: { orgs: { id: string; name: 
     <div className="admin">
       <a className="skip" href="#main">Skip to dashboard</a>
       <aside className="side" aria-label="Employer">
-        <a href="#/" className="logo" style={{ color: "#fff" }}><span className="logo-mark" aria-hidden="true">F</span>FairShift</a>
+        <a href="#/" className="logo"><span className="logo-mark" aria-hidden="true">F</span>FairShift</a>
         <label className="col" style={{ gap: 6 }}>
-          <span className="tiny" style={{ fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: "#9fb8ab" }}>Workplace</span>
+          <span className="tiny" style={{ fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: "var(--muted)" }}>Workplace</span>
           <select className="select" value={o.org.id} onChange={(e) => onSwitch(e.target.value)} aria-label="Switch workplace">
             {orgs.map((x) => <option key={x.id} value={x.id}>{x.name} · {SECTOR_LABEL[x.sector]}</option>)}
           </select>
@@ -82,7 +82,7 @@ export function Admin({ orgs, onSwitch, onLogout }: { orgs: { id: string; name: 
         </nav>
         <span className="grow" />
         <span className="small row" style={{ gap: 8 }}><span className="live-dot" aria-hidden="true" /> Live</span>
-        <button type="button" className="btn sm" style={{ background: "transparent", color: "#d7e4dc", borderColor: "#2b4a3c" }} onClick={onLogout}><LogOut size={16} aria-hidden="true" /> Sign out</button>
+        <button type="button" className="btn sm" onClick={onLogout}><LogOut size={16} aria-hidden="true" /> Sign out</button>
       </aside>
 
       <main className="main" id="main">

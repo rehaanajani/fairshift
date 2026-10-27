@@ -324,7 +324,7 @@ function PayTab({ lang, L }: Props) {
   const { data: slip } = useLoad(() => api<Slip>(`/w/payslip?period=${period}`), [period]);
   const [explain, setExplain] = useState<string>("");
   const [busy, setBusy] = useState(false);
-  const colors: Record<string, string> = { regular: "#0b5d3b", overtime: "#d97706", pf: "#1d4ed8", esi: "#7c3aed" };
+  const colors: Record<string, string> = { regular: "#161714", overtime: "#9b87ef", pf: "#d9cfb4", esi: "#b9b6c9" };
   const explainPay = async () => {
     setBusy(true);
     const r = await api<{ text: string }>("/w/payslip/explain", { body: { lang } }).catch((e) => ({ text: (e as Error).message }));
