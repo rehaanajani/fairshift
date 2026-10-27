@@ -47,7 +47,7 @@ export async function synthesize(text: string, lang: Lang): Promise<Spoken | nul
     const token = await auth.getAccessToken();
     const res = await fetch("https://texttospeech.googleapis.com/v1/text:synthesize", {
       method: "POST",
-      headers: { authorization: `Bearer ${token}`, "content-type": "application/json", "x-goog-user-project": process.env.GOOGLE_CLOUD_PROJECT },
+      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
       body: JSON.stringify({ input: { text: text.slice(0, 1400) }, voice: { languageCode }, audioConfig: { audioEncoding: "MP3", speakingRate: 0.95 } }),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
