@@ -4,6 +4,10 @@
   "private": true,
   "description": "FairShift: decent work platform for shift workers and their employers (UN SDG 8).",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rehaanajani/fairshift.git"
+  },
   "type": "module",
   "engines": {
     "node": ">=22"
