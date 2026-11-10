@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "FairShift: decent work platform for shift workers and their employers (UN SDG 8).",
+  "license": "MIT",
   "type": "module",
   "engines": {
     "node": ">=22"
